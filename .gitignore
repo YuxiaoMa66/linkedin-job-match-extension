@@ -1,0 +1,12 @@
+node_modules/
+dist/
+
+*.log
+build_log.txt
+error.log
+
+.DS_Store
+Thumbs.db
+
+.idea/
+.vscode/
