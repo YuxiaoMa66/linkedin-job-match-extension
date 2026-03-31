@@ -1,24 +1,36 @@
-const CACHE_PREFIX = 'match_result_v2_';
+const CACHE_PREFIX = 'match_result_v3_';
+const CURRENT_CACHE_VERSION = 3;
 const LEGACY_CACHE_PREFIX = 'match_result_';
 const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
 
-function buildCacheKey(jobId, resumeHash) {
-  return `${CACHE_PREFIX}${resumeHash}_${jobId}`;
+function buildCacheKey(jobId, cacheContext) {
+  return `${CACHE_PREFIX}${cacheContext.resumeHash}_${cacheContext.scoringProfileHash}_${cacheContext.modelKeyHash}_${jobId}`;
 }
 
-function buildSummary(jobId, jdData, matchData) {
+function buildSummary(jobId, jdData, matchData, cacheContext) {
   const sponsorship = matchData?.sponsorshipAssessment || {};
+  const metadata = matchData?.metadata || {};
+  const scoringProfile = cacheContext?.scoringProfile || {};
+
   return {
     jobId,
     title: jdData?.title || '',
     company: jdData?.company || '',
     location: jdData?.location || '',
     url: jdData?.url || '',
-    jdLanguage: matchData?.metadata?.jdLanguage || 'Unknown',
-    requiredExperience: matchData?.metadata?.requiredExperience || null,
-    requiredLanguages: Array.isArray(matchData?.metadata?.requiredLanguages) ? matchData.metadata.requiredLanguages : [],
+    jdLanguage: metadata.jdLanguage || 'Unknown',
+    requiredExperience: metadata.requiredExperience || null,
+    requiredLanguages: Array.isArray(metadata.requiredLanguages) ? metadata.requiredLanguages : [],
     score: matchData?.overallMatchPercent ?? null,
-    analyzedAt: matchData?.metadata?.analysisTimestamp || new Date().toISOString(),
+    analyzedAt: metadata.analysisTimestamp || new Date().toISOString(),
+    analysisPreset: scoringProfile.analysisPreset || metadata.analysisPreset || 'balanced',
+    promptTuningMode: scoringProfile.promptTuningMode || metadata.promptTuningMode || 'balanced',
+    isCustomProfile: scoringProfile.isCustomProfile === true || metadata.isCustomProfile === true,
+    includeSponsorshipInScore: scoringProfile.includeSponsorshipInScore !== false && metadata.includeSponsorshipInScore !== false,
+    weightsApplied: metadata.weightsApplied || scoringProfile.weightsApplied || {},
+    modelKey: cacheContext?.modelKey || metadata.modelKey || '',
+    promptVersion: cacheContext?.promptVersion || metadata.promptVersion || 'v1',
+    timing: metadata.timing || null,
     kmEligible: sponsorship.kmEligible === true || sponsorship.indRegistered === true,
     sponsorshipLabel: sponsorship.kmEligible === true || sponsorship.indRegistered === true ? 'KM' : null,
     sponsorshipCompany: sponsorship.registryMatchedName || null,
@@ -31,30 +43,33 @@ function isExpired(timestamp) {
 }
 
 export const CacheManager = {
-  async saveResult(jobId, resumeHash, jdData, matchData) {
-    if (!jobId || !resumeHash || !matchData) {
+  async saveResult(jobId, cacheContext, jdData, matchData) {
+    if (!jobId || !cacheContext?.resumeHash || !cacheContext?.scoringProfileHash || !cacheContext?.modelKeyHash || !matchData) {
       return;
     }
 
-    const key = buildCacheKey(jobId, resumeHash);
+    const key = buildCacheKey(jobId, cacheContext);
     await chrome.storage.local.set({
       [key]: {
-        version: 2,
+        version: CURRENT_CACHE_VERSION,
         timestamp: Date.now(),
-        resumeHash,
+        resumeHash: cacheContext.resumeHash,
         jobId,
-        summary: buildSummary(jobId, jdData, matchData),
+        scoringProfileHash: cacheContext.scoringProfileHash,
+        modelKeyHash: cacheContext.modelKeyHash,
+        promptVersion: cacheContext.promptVersion || 'v1',
+        summary: buildSummary(jobId, jdData, matchData, cacheContext),
         data: matchData,
       },
     });
   },
 
-  async getEntry(jobId, resumeHash) {
-    if (!jobId || !resumeHash) {
+  async getEntry(jobId, cacheContext) {
+    if (!jobId || !cacheContext?.resumeHash || !cacheContext?.scoringProfileHash || !cacheContext?.modelKeyHash) {
       return null;
     }
 
-    const key = buildCacheKey(jobId, resumeHash);
+    const key = buildCacheKey(jobId, cacheContext);
     const result = await chrome.storage.local.get(key);
     const payload = result[key];
 
@@ -70,24 +85,24 @@ export const CacheManager = {
     return payload;
   },
 
-  async getResult(jobId, resumeHash) {
-    const entry = await this.getEntry(jobId, resumeHash);
+  async getResult(jobId, cacheContext) {
+    const entry = await this.getEntry(jobId, cacheContext);
     return entry?.data || null;
   },
 
-  async getEntries(jobIds, resumeHash) {
-    if (!Array.isArray(jobIds) || !jobIds.length || !resumeHash) {
+  async getEntries(jobIds, cacheContext) {
+    if (!Array.isArray(jobIds) || !jobIds.length || !cacheContext?.resumeHash || !cacheContext?.scoringProfileHash || !cacheContext?.modelKeyHash) {
       return [];
     }
 
     const uniqueJobIds = [...new Set(jobIds.filter(Boolean))];
-    const keys = uniqueJobIds.map(jobId => buildCacheKey(jobId, resumeHash));
+    const keys = uniqueJobIds.map(jobId => buildCacheKey(jobId, cacheContext));
     const storage = await chrome.storage.local.get(keys);
     const expiredKeys = [];
     const entries = [];
 
     for (const jobId of uniqueJobIds) {
-      const key = buildCacheKey(jobId, resumeHash);
+      const key = buildCacheKey(jobId, cacheContext);
       const payload = storage[key];
 
       if (!payload) {
@@ -115,7 +130,7 @@ export const CacheManager = {
 
     for (const [key, value] of Object.entries(allStorage)) {
       if (key.startsWith(CACHE_PREFIX)) {
-        if (isExpired(value?.timestamp)) {
+        if (isExpired(value?.timestamp) || value?.version !== CURRENT_CACHE_VERSION) {
           keysToRemove.push(key);
         }
       }

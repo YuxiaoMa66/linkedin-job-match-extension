@@ -1,8 +1,10 @@
-import { Actions, DegradationTrigger } from '../shared/constants.js';
+import { Actions, DegradationTrigger, ErrorTypes } from '../shared/constants.js';
 import { loadConfig, saveConfig } from './config-manager.js';
 import { CacheManager } from './cache-manager.js';
 import { runAnalysis } from './match-engine.js';
 import { callLLM } from './llm-adapter.js';
+import { MATCH_PROMPT_VERSION } from '../prompts/prompt-templates.js';
+import { buildCacheContext } from '../shared/scoring-profile.js';
 import {
   loadPersistentResume,
   savePersistentResume,
@@ -178,6 +180,7 @@ function buildAnalysisPayload(result, jdData, extra = {}) {
 }
 
 function buildCachedResponse(entry, includeResult = false) {
+  const metadata = entry.data?.metadata || {};
   const response = {
     jobId: entry.jobId,
     score: entry.summary?.score ?? null,
@@ -193,6 +196,12 @@ function buildCachedResponse(entry, includeResult = false) {
     sponsorshipLabel: entry.summary?.sponsorshipLabel || null,
     sponsorshipCompany: entry.summary?.sponsorshipCompany || null,
     sponsorshipConfidence: entry.summary?.sponsorshipConfidence || null,
+    analysisPreset: entry.summary?.analysisPreset || metadata.analysisPreset || 'balanced',
+    promptTuningMode: entry.summary?.promptTuningMode || metadata.promptTuningMode || 'balanced',
+    isCustomProfile: entry.summary?.isCustomProfile === true || metadata.isCustomProfile === true,
+    includeSponsorshipInScore: entry.summary?.includeSponsorshipInScore !== false && metadata.includeSponsorshipInScore !== false,
+    weightsApplied: entry.summary?.weightsApplied || metadata.weightsApplied || {},
+    timing: entry.summary?.timing || metadata.timing || null,
   };
 
   if (includeResult) {
@@ -220,7 +229,9 @@ async function maybeBroadcastCachedResult(jdData) {
     return;
   }
 
-  const cachedEntry = await CacheManager.getEntry(jdData.jobId, resume.hash);
+  const config = await loadConfig();
+  const cacheContext = await buildCacheContext(config, resume.hash, MATCH_PROMPT_VERSION);
+  const cachedEntry = await CacheManager.getEntry(jdData.jobId, cacheContext);
   if (!cachedEntry || shouldIgnoreCachedEntry(cachedEntry)) {
     return;
   }
@@ -300,9 +311,10 @@ async function handleStartAnalysis(requestPayload, sendResponse) {
 
   try {
     const config = await loadConfig();
+    const cacheContext = await buildCacheContext(config, resume.hash, MATCH_PROMPT_VERSION);
 
     if (!config.apiKey?.trim()) {
-      sendResponse({ ok: false, error: 'Please configure an API key first.' });
+      sendResponse({ ok: false, error: 'Please configure an API key first.', errorType: ErrorTypes.CONFIG_MISSING });
       return;
     }
 
@@ -319,7 +331,7 @@ async function handleStartAnalysis(requestPayload, sendResponse) {
     const forceRefresh = requestPayload?.forceRefresh === true;
 
     if (!forceRefresh && jdData.jobId && resume.hash) {
-      const cachedEntry = await CacheManager.getEntry(jdData.jobId, resume.hash);
+      const cachedEntry = await CacheManager.getEntry(jdData.jobId, cacheContext);
       if (cachedEntry && !shouldIgnoreCachedEntry(cachedEntry)) {
         const activeTab = await getActiveTab();
         await tryInjectScore(activeTab?.id, jdData.jobId, cachedEntry.summary?.score);
@@ -348,7 +360,7 @@ async function handleStartAnalysis(requestPayload, sendResponse) {
     );
 
     if (jdData.jobId && resume.hash && !shouldIgnoreCachedEntry({ data: result })) {
-      await CacheManager.saveResult(jdData.jobId, resume.hash, jdData, result);
+      await CacheManager.saveResult(jdData.jobId, cacheContext, jdData, result);
     }
 
     const activeTab = await getActiveTab();
@@ -358,9 +370,9 @@ async function handleStartAnalysis(requestPayload, sendResponse) {
     broadcast({ type: Actions.ANALYSIS_RESULT, payload: resultPayload });
     sendResponse({ ok: true, data: resultPayload });
   } catch (err) {
-    const errorMsg = err.message || 'Unknown analysis error.';
-    broadcast({ type: Actions.ANALYSIS_ERROR, payload: { error: errorMsg } });
-    sendResponse({ ok: false, error: errorMsg });
+    const normalizedError = normalizeUserFacingError(err);
+    broadcast({ type: Actions.ANALYSIS_ERROR, payload: normalizedError });
+    sendResponse({ ok: false, ...normalizedError });
   } finally {
     isAnalyzing = false;
   }
@@ -382,6 +394,7 @@ async function handleBatchAnalysis(requestPayload, sendResponse) {
 
   try {
     const config = await loadConfig();
+    const cacheContext = await buildCacheContext(config, resume.hash, MATCH_PROMPT_VERSION);
     if (!config.apiKey?.trim()) {
       throw new Error('Please configure an API key first.');
     }
@@ -420,7 +433,7 @@ async function handleBatchAnalysis(requestPayload, sendResponse) {
         },
       });
 
-      const cachedEntry = !forceRefresh ? await CacheManager.getEntry(job.jobId, resume.hash) : null;
+      const cachedEntry = !forceRefresh ? await CacheManager.getEntry(job.jobId, cacheContext) : null;
       if (cachedEntry) {
         if (shouldIgnoreCachedEntry(cachedEntry)) {
           // Skip degraded cached entries and re-run analysis for a clean result.
@@ -481,7 +494,7 @@ async function handleBatchAnalysis(requestPayload, sendResponse) {
         });
 
         if (!shouldIgnoreCachedEntry({ data: result })) {
-          await CacheManager.saveResult(job.jobId, resume.hash, jdData, result);
+          await CacheManager.saveResult(job.jobId, cacheContext, jdData, result);
         }
         await tryInjectScore(activeTab.id, job.jobId, result.overallMatchPercent);
 
@@ -502,9 +515,9 @@ async function handleBatchAnalysis(requestPayload, sendResponse) {
     });
     sendResponse({ ok: true, analyzedCount: jobs.length });
   } catch (err) {
-    const errorMsg = err.message || 'Batch analysis failed.';
-    broadcast({ type: Actions.ANALYSIS_ERROR, payload: { error: errorMsg } });
-    sendResponse({ ok: false, error: errorMsg });
+    const normalizedError = normalizeUserFacingError(err);
+    broadcast({ type: Actions.ANALYSIS_ERROR, payload: normalizedError });
+    sendResponse({ ok: false, ...normalizedError });
   } finally {
     isAnalyzing = false;
   }
@@ -591,7 +604,9 @@ async function handleGetCachedScores(payload, sendResponse) {
     }
 
     const jobIds = Array.isArray(payload?.jobIds) ? payload.jobIds : [];
-    const entries = (await CacheManager.getEntries(jobIds, resume.hash))
+    const config = await loadConfig();
+    const cacheContext = await buildCacheContext(config, resume.hash, MATCH_PROMPT_VERSION);
+    const entries = (await CacheManager.getEntries(jobIds, cacheContext))
       .filter(entry => !shouldIgnoreCachedEntry(entry));
     sendResponse({
       ok: true,
@@ -648,4 +663,79 @@ function broadcast(msg) {
   chrome.runtime.sendMessage(msg).catch(() => {
     // Side panel might be closed. This is expected.
   });
+}
+
+function normalizeUserFacingError(error) {
+  const rawMessage = error?.message || 'Unknown analysis error.';
+  const lower = rawMessage.toLowerCase();
+
+  if (lower.includes('api key')) {
+    return {
+      errorType: ErrorTypes.CONFIG_MISSING,
+      error: 'API configuration is incomplete. Add a valid API key and try again.',
+      details: rawMessage,
+    };
+  }
+
+  if (lower.includes('404') || lower.includes('model') && lower.includes('not found')) {
+    return {
+      errorType: ErrorTypes.MODEL_NOT_FOUND,
+      error: 'The selected model is unavailable. Check the model name or test the connection first.',
+      details: rawMessage,
+    };
+  }
+
+  if (lower.includes('401') || lower.includes('403') || lower.includes('unauthorized')) {
+    return {
+      errorType: ErrorTypes.AUTH_FAILED,
+      error: 'Authentication failed. Please verify the API key and provider settings.',
+      details: rawMessage,
+    };
+  }
+
+  if (lower.includes('429') || lower.includes('rate limit')) {
+    return {
+      errorType: ErrorTypes.RATE_LIMITED,
+      error: 'The provider is rate limiting requests right now. Please wait a moment and retry.',
+      details: rawMessage,
+    };
+  }
+
+  if (lower.includes('unable to read job data') || lower.includes('job description extraction failed') || lower.includes('details never loaded')) {
+    return {
+      errorType: ErrorTypes.JD_EXTRACTION_FAILED,
+      error: 'LinkedIn job details could not be read. Refresh the job page and try again.',
+      details: rawMessage,
+    };
+  }
+
+  if (lower.includes('resume')) {
+    return {
+      errorType: ErrorTypes.RESUME_PARSE_FAILED,
+      error: 'The resume could not be parsed correctly. Try another PDF, DOCX, or TXT file.',
+      details: rawMessage,
+    };
+  }
+
+  if (lower.includes('network') || lower.includes('fetch')) {
+    return {
+      errorType: ErrorTypes.NETWORK_FAILED,
+      error: 'A network error interrupted the analysis. Please retry in a moment.',
+      details: rawMessage,
+    };
+  }
+
+  if (lower.includes('json') || lower.includes('format') || lower.includes('parsed')) {
+    return {
+      errorType: ErrorTypes.MODEL_OUTPUT_INVALID,
+      error: 'The model responded, but the result format was incomplete. Re-analyze or switch to a more stable model.',
+      details: rawMessage,
+    };
+  }
+
+  return {
+    errorType: ErrorTypes.UNKNOWN_ERROR,
+    error: rawMessage,
+    details: rawMessage,
+  };
 }

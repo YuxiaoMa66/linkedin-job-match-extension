@@ -90,6 +90,87 @@ export const ItemNames = Object.freeze({
   SPONSORSHIP: 'Sponsorship Fit',
 });
 
+export const ScoringPresets = Object.freeze({
+  STRICT: 'strict',
+  BALANCED: 'balanced',
+  POTENTIAL: 'potential',
+  SPONSORSHIP_FIRST: 'sponsorship-first',
+});
+
+export const PromptTuningModes = Object.freeze({
+  STRICT: 'strict',
+  BALANCED: 'balanced',
+  POTENTIAL: 'potential',
+  SPONSORSHIP_FIRST: 'sponsorship-first',
+});
+
+export const ErrorTypes = Object.freeze({
+  CONFIG_MISSING: 'CONFIG_MISSING',
+  AUTH_FAILED: 'AUTH_FAILED',
+  MODEL_NOT_FOUND: 'MODEL_NOT_FOUND',
+  RATE_LIMITED: 'RATE_LIMITED',
+  NETWORK_FAILED: 'NETWORK_FAILED',
+  LINKEDIN_CONTEXT_UNAVAILABLE: 'LINKEDIN_CONTEXT_UNAVAILABLE',
+  JD_EXTRACTION_FAILED: 'JD_EXTRACTION_FAILED',
+  RESUME_PARSE_FAILED: 'RESUME_PARSE_FAILED',
+  MODEL_OUTPUT_INVALID: 'MODEL_OUTPUT_INVALID',
+  CACHE_MISMATCH: 'CACHE_MISMATCH',
+  UNKNOWN_ERROR: 'UNKNOWN_ERROR',
+});
+
+export const DEFAULT_ANALYSIS_PRESET = ScoringPresets.BALANCED;
+
+export const PRESET_WEIGHT_PROFILES = Object.freeze({
+  [ScoringPresets.STRICT]: Object.freeze({
+    [ItemNames.SKILLS]: 0.32,
+    [ItemNames.RESPONSIBILITY]: 0.24,
+    [ItemNames.YEARS]: 0.20,
+    [ItemNames.EDUCATION]: 0.10,
+    [ItemNames.LANG_LOCATION]: 0.10,
+    [ItemNames.SPONSORSHIP]: 0.04,
+  }),
+  [ScoringPresets.BALANCED]: Object.freeze({
+    [ItemNames.SKILLS]: 0.30,
+    [ItemNames.RESPONSIBILITY]: 0.25,
+    [ItemNames.YEARS]: 0.15,
+    [ItemNames.EDUCATION]: 0.15,
+    [ItemNames.LANG_LOCATION]: 0.10,
+    [ItemNames.SPONSORSHIP]: 0.05,
+  }),
+  [ScoringPresets.POTENTIAL]: Object.freeze({
+    [ItemNames.SKILLS]: 0.32,
+    [ItemNames.RESPONSIBILITY]: 0.28,
+    [ItemNames.YEARS]: 0.08,
+    [ItemNames.EDUCATION]: 0.12,
+    [ItemNames.LANG_LOCATION]: 0.12,
+    [ItemNames.SPONSORSHIP]: 0.08,
+  }),
+  [ScoringPresets.SPONSORSHIP_FIRST]: Object.freeze({
+    [ItemNames.SKILLS]: 0.24,
+    [ItemNames.RESPONSIBILITY]: 0.18,
+    [ItemNames.YEARS]: 0.10,
+    [ItemNames.EDUCATION]: 0.08,
+    [ItemNames.LANG_LOCATION]: 0.10,
+    [ItemNames.SPONSORSHIP]: 0.30,
+  }),
+});
+
+export const ANALYSIS_PRESET_OPTIONS = Object.freeze([
+  { id: ScoringPresets.STRICT, label: 'Strict' },
+  { id: ScoringPresets.BALANCED, label: 'Balanced' },
+  { id: ScoringPresets.POTENTIAL, label: 'Potential' },
+  { id: ScoringPresets.SPONSORSHIP_FIRST, label: 'Sponsorship-first' },
+]);
+
+export const SCORING_ITEM_ORDER = Object.freeze([
+  ItemNames.SKILLS,
+  ItemNames.RESPONSIBILITY,
+  ItemNames.YEARS,
+  ItemNames.EDUCATION,
+  ItemNames.LANG_LOCATION,
+  ItemNames.SPONSORSHIP,
+]);
+
 export const WEIGHTS_WITH_SPONSOR = Object.freeze({
   [ItemNames.SKILLS]: 0.30,
   [ItemNames.RESPONSIBILITY]: 0.25,
@@ -118,6 +199,14 @@ export const DEFAULT_MODEL_CONFIG = Object.freeze({
   timeoutMs: 60000,
   maxRetries: 2,
   autoAnalyzeCount: 0,
+  analysisPreset: DEFAULT_ANALYSIS_PRESET,
+  promptTuningMode: PromptTuningModes.BALANCED,
+  includeSponsorshipInScore: true,
+  useCustomWeights: false,
+  customWeights: {},
+  additionalPromptInstructions: '',
+  customPromptTemplate: '',
+  enableDiagnostics: true,
   providerProfiles: {},
 });
 

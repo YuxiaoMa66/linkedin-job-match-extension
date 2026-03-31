@@ -137,7 +137,10 @@
               </svg>
               <div class="score-value" id="score-value">0</div>
             </div>
-            <p class="score-label">Overall match</p>
+            <div class="score-label-row">
+              <p class="score-label">Overall match</p>
+              <span class="score-status-badge hidden" id="score-status-badge">Blocked</span>
+            </div>
           </div>
           <p class="result-context" id="result-context"></p>
           <div class="score-meta" id="score-meta"></div>
@@ -244,6 +247,106 @@
           <button class="btn-secondary" id="test-connection-btn" type="button">Test connection</button>
         </div>
         <p class="save-hint" id="test-connection-hint"></p>
+
+        <div class="analysis-settings-block">
+          <div class="card-header settings-subheader">
+            <div>
+              <p class="eyebrow">Scoring</p>
+              <h2>Analysis preference</h2>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="setting-analysis-preset">Analysis mode</label>
+            <select id="setting-analysis-preset" class="form-select">
+              <option value="strict">Strict</option>
+              <option value="balanced">Balanced</option>
+              <option value="potential">Potential</option>
+              <option value="sponsorship-first">Sponsorship-first</option>
+            </select>
+            <p class="field-hint">This combines scoring preset and prompt style into one simple mode.</p>
+          </div>
+
+          <label class="checkbox-row" for="setting-include-sponsorship">
+            <input type="checkbox" id="setting-include-sponsorship" />
+            <span>I need employer sponsorship</span>
+          </label>
+          <p class="field-hint custom-mode-hint">
+            If this is checked, sponsorship availability is treated as relevant to your fit and can affect the total score. If it is unchecked, the plugin assumes you do not need sponsorship, so sponsorship is shown for reference only and the remaining weights are renormalized back to 100%.
+          </p>
+
+          <div class="form-group">
+            <label for="setting-mode-prompt-preview">Built-in mode prompt</label>
+            <textarea id="setting-mode-prompt-preview" class="form-input form-textarea prompt-preview" readonly></textarea>
+            <p class="field-hint">This is the built-in prompt guidance for the selected mode. It is shown for transparency and cannot be edited.</p>
+          </div>
+
+          <div class="form-group">
+            <label for="setting-additional-instructions">Additional prompt instructions</label>
+            <textarea id="setting-additional-instructions" class="form-input form-textarea" placeholder="Optional. Example: Prioritize SQL and analytics responsibilities."></textarea>
+            <p class="field-hint">These instructions are appended to the selected analysis mode and can affect scoring.</p>
+          </div>
+
+          <label class="checkbox-row" for="setting-use-custom-weights">
+            <input type="checkbox" id="setting-use-custom-weights" />
+            <span>Enable full custom scoring</span>
+          </label>
+          <p class="field-hint custom-mode-hint">
+            When full custom scoring is enabled, the preset no longer controls weights. You must define all weights yourself. You can also provide a full custom prompt, which overrides the built-in mode prompt.
+          </p>
+
+          <div class="form-group">
+            <label for="setting-custom-prompt">Full custom prompt</label>
+            <textarea id="setting-custom-prompt" class="form-input form-textarea" placeholder="Only used when full custom scoring is enabled. Write the full analysis guidance you want the model to follow."></textarea>
+            <p class="field-hint">When custom scoring is enabled and this field is not empty, it replaces the built-in mode prompt. Your additional prompt instructions are still appended after it.</p>
+          </div>
+
+          <details class="advanced-settings" open>
+            <summary>Advanced weights</summary>
+            <p class="field-hint" id="setting-weight-total">Current total: 100%</p>
+
+            <div class="weight-grid">
+              <div class="form-group">
+                <label for="weight-skills">Skills</label>
+                <input type="number" id="weight-skills" class="form-input weight-input" min="0" max="100" step="1" />
+              </div>
+
+              <div class="form-group">
+                <label for="weight-responsibility">Responsibilities</label>
+                <input type="number" id="weight-responsibility" class="form-input weight-input" min="0" max="100" step="1" />
+              </div>
+
+              <div class="form-group">
+                <label for="weight-years">Experience years</label>
+                <input type="number" id="weight-years" class="form-input weight-input" min="0" max="100" step="1" />
+              </div>
+
+              <div class="form-group">
+                <label for="weight-education">Education</label>
+                <input type="number" id="weight-education" class="form-input weight-input" min="0" max="100" step="1" />
+              </div>
+
+              <div class="form-group">
+                <label for="weight-lang-location">Language & location</label>
+                <input type="number" id="weight-lang-location" class="form-input weight-input" min="0" max="100" step="1" />
+              </div>
+
+              <div class="form-group">
+                <label for="weight-sponsorship">Sponsorship</label>
+                <input type="number" id="weight-sponsorship" class="form-input weight-input" min="0" max="100" step="1" />
+              </div>
+            </div>
+
+            <div class="inline-actions">
+              <button class="btn-secondary" id="reset-weights-btn" type="button">Reset to preset</button>
+            </div>
+          </details>
+
+          <label class="checkbox-row" for="setting-enable-diagnostics">
+            <input type="checkbox" id="setting-enable-diagnostics" />
+            <span>Keep diagnostics and timing details in results</span>
+          </label>
+        </div>
 
         <details class="advanced-settings">
           <summary>Advanced settings</summary>

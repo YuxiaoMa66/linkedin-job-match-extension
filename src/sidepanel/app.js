@@ -1,4 +1,16 @@
-import { Actions, PROVIDERS } from '../shared/constants.js';
+import {
+  Actions,
+  DEFAULT_ANALYSIS_PRESET,
+  ItemNames,
+  PROVIDERS,
+} from '../shared/constants.js';
+import {
+  getEffectiveWeights,
+  getPresetLabel,
+  hasCustomWeights,
+  sanitizeCustomWeights,
+} from '../shared/scoring-profile.js';
+import { getPromptTuningInstructions } from '../prompts/prompt-templates.js';
 
 const $ = selector => document.querySelector(selector);
 const $$ = selector => document.querySelectorAll(selector);
@@ -41,6 +53,7 @@ const els = {
 
   scoreValue: $('#score-value'),
   scoreRingFill: $('#score-ring-fill'),
+  scoreStatusBadge: $('#score-status-badge'),
   scoreMeta: $('#score-meta'),
   breakdownList: $('#breakdown-list'),
   strengthsList: $('#strengths-list'),
@@ -60,6 +73,21 @@ const els = {
   settingTimeout: $('#setting-timeout'),
   settingRetries: $('#setting-retries'),
   settingAutoAnalyze: $('#setting-autoanalyze'),
+  settingAnalysisPreset: $('#setting-analysis-preset'),
+  settingIncludeSponsorship: $('#setting-include-sponsorship'),
+  settingModePromptPreview: $('#setting-mode-prompt-preview'),
+  settingAdditionalInstructions: $('#setting-additional-instructions'),
+  settingUseCustomWeights: $('#setting-use-custom-weights'),
+  settingCustomPrompt: $('#setting-custom-prompt'),
+  settingEnableDiagnostics: $('#setting-enable-diagnostics'),
+  settingWeightTotal: $('#setting-weight-total'),
+  resetWeightsBtn: $('#reset-weights-btn'),
+  weightSkills: $('#weight-skills'),
+  weightResponsibility: $('#weight-responsibility'),
+  weightYears: $('#weight-years'),
+  weightEducation: $('#weight-education'),
+  weightLangLocation: $('#weight-lang-location'),
+  weightSponsorship: $('#weight-sponsorship'),
   addModelBtn: $('#add-model-btn'),
   testConnectionBtn: $('#test-connection-btn'),
   testConnectionHint: $('#test-connection-hint'),
@@ -78,6 +106,15 @@ let isAnalyzing = false;
 let scoreMap = new Map();
 let lastAutoAnalyzeSignature = '';
 let currentResultJobId = null;
+
+const WEIGHT_FIELD_MAP = Object.freeze({
+  [ItemNames.SKILLS]: 'weightSkills',
+  [ItemNames.RESPONSIBILITY]: 'weightResponsibility',
+  [ItemNames.YEARS]: 'weightYears',
+  [ItemNames.EDUCATION]: 'weightEducation',
+  [ItemNames.LANG_LOCATION]: 'weightLangLocation',
+  [ItemNames.SPONSORSHIP]: 'weightSponsorship',
+});
 
 document.addEventListener('DOMContentLoaded', init);
 
@@ -314,6 +351,15 @@ function setupJobListControls() {
 
 function setupSettings() {
   els.settingProvider.addEventListener('change', handleProviderChange);
+  els.settingAnalysisPreset.addEventListener('change', handleAnalysisPresetChange);
+  els.settingIncludeSponsorship.addEventListener('change', handleIncludeSponsorshipToggle);
+  els.settingUseCustomWeights.addEventListener('change', handleUseCustomWeightsToggle);
+  els.resetWeightsBtn.addEventListener('click', resetWeightsToPreset);
+  getWeightInputs().forEach(input => {
+    input.addEventListener('input', () => {
+      updateWeightTotalHint();
+    });
+  });
 
   els.addModelBtn.addEventListener('click', () => {
     const activeModel = els.settingModel.value.trim();
@@ -382,10 +428,12 @@ async function loadAndDisplayConfig() {
   els.settingProvider.value = currentConfig.provider || 'openai';
   applyProviderProfileToForm(els.settingProvider.value);
   els.settingAutoAnalyze.value = currentConfig.autoAnalyzeCount ?? 0;
+  applyAnalysisSettingsToForm();
 }
 
 async function saveConfig() {
   syncCurrentProviderDraft();
+  const analysisSettings = readAnalysisSettingsForm();
   const activeProvider = els.settingProvider.value;
   const activeProfile = currentConfig.providerProfiles?.[activeProvider] || readProviderForm();
   const modelIds = normalizeModelList(activeProfile.modelIds, activeProfile.modelId);
@@ -401,6 +449,14 @@ async function saveConfig() {
     timeoutMs: activeProfile.timeoutMs,
     maxRetries: activeProfile.maxRetries,
     autoAnalyzeCount: Math.max(0, Number.parseInt(els.settingAutoAnalyze.value, 10) || 0),
+    analysisPreset: analysisSettings.analysisPreset,
+    promptTuningMode: analysisSettings.promptTuningMode,
+    includeSponsorshipInScore: analysisSettings.includeSponsorshipInScore,
+    useCustomWeights: analysisSettings.useCustomWeights,
+    customWeights: analysisSettings.customWeights,
+    additionalPromptInstructions: analysisSettings.additionalPromptInstructions,
+    customPromptTemplate: analysisSettings.customPromptTemplate,
+    enableDiagnostics: analysisSettings.enableDiagnostics,
     providerProfiles: currentConfig.providerProfiles,
   };
 
@@ -415,6 +471,7 @@ async function saveConfig() {
     }
 
     currentConfig = hydrateProviderProfiles(payload);
+    applyAnalysisSettingsToForm();
     showSaveHint('Settings saved.', 'success');
     maybeAutoAnalyzeList(true);
   } catch (err) {
@@ -825,10 +882,11 @@ function handleResult(result) {
 
 function renderResult(result) {
   renderScoreRing(result.overallMatchPercent);
+  renderScoreStatus(result);
   renderScoreMeta(result);
   renderBreakdown(result.matchBreakdown || []);
   renderInsights(result.strengths || [], result.gaps || []);
-  renderSponsorship(result.sponsorshipAssessment);
+  renderSponsorship(result.sponsorshipAssessment, result.metadata || {});
   renderMetadata(result.metadata || {});
 
   const parts = [];
@@ -855,10 +913,22 @@ function renderResult(result) {
   updateAnalyzeButtons();
 }
 
-function handleAnalysisError({ error }) {
+function renderScoreStatus(result) {
+  const blocked = isSponsorshipHardBlockResult(result);
+  els.scoreStatusBadge.classList.toggle('hidden', !blocked);
+  if (blocked) {
+    els.scoreStatusBadge.textContent = 'Blocked';
+    els.scoreStatusBadge.title = 'This result was forced to 0 by a sponsorship hard blocker.';
+  } else {
+    els.scoreStatusBadge.textContent = 'Blocked';
+    els.scoreStatusBadge.removeAttribute('title');
+  }
+}
+
+function handleAnalysisError({ error, details }) {
   els.progressContainer.classList.add('hidden');
   resetAnalyzeButtons();
-  showError(error || 'Analysis failed.');
+  showError(details && details !== error ? `${error || 'Analysis failed.'} ${details}` : (error || 'Analysis failed.'));
 }
 
 function renderScoreRing(score) {
@@ -964,22 +1034,19 @@ function renderInsights(strengths, gaps) {
     : '<li>No gaps returned.</li>';
 }
 
-function renderSponsorship(assessment) {
+function renderSponsorship(assessment, meta = {}) {
   if (!assessment) {
     els.sponsorshipCard.classList.add('hidden');
     return;
   }
 
   els.sponsorshipCard.classList.remove('hidden');
-  const conclusionClass = isUnsupportedSponsorship(assessment)
-    ? 'unsupported'
-    : assessment.indRegistered === true
-      ? 'positive'
-      : assessment.indRegistered === false
-        ? 'negative'
-        : 'unknown';
-
-  const sections = [`<div class="sponsor-conclusion ${conclusionClass}">${escapeHtml(assessment.conclusion || 'Unknown')}</div>`];
+  const status = buildSponsorshipStatus(assessment, meta);
+  const sections = [
+    `<div class="sponsor-status-row"><span class="sponsor-status ${status.className}">${escapeHtml(status.label)}</span></div>`,
+    `<div class="sponsor-conclusion ${status.className}">${escapeHtml(assessment.conclusion || 'Unknown')}</div>`,
+    `<div><strong>Scoring mode:</strong> ${meta.includeSponsorshipInScore === false ? 'Sponsorship not needed for this run' : 'Sponsorship required for this run'}</div>`,
+  ];
   if (assessment.evidence?.length) {
     sections.push(`<div>${assessment.evidence.map(item => escapeHtml(item)).join('<br/>')}</div>`);
   }
@@ -1077,9 +1144,16 @@ function renderMetadata(meta) {
   const rows = [
     ['Analysis time', meta.analysisTimestamp || 'N/A'],
     ['Model', meta.modelUsed || 'N/A'],
+    ['Analysis mode', getPresetLabel(meta.analysisPreset || DEFAULT_ANALYSIS_PRESET)],
+    ['Profile type', meta.isCustomProfile ? 'Custom' : 'Preset'],
+    ['Needs sponsorship', meta.includeSponsorshipInScore === false ? 'No' : 'Yes'],
     ['Penalty coefficient', meta.penaltyCoefficient ?? 'N/A'],
     ['Cap limit', meta.capLimit ?? 'N/A'],
     ['Raw score', meta.rawScoreBeforePenalty ?? 'N/A'],
+    ['Total time', formatTiming(meta.timing?.totalMs)],
+    ['LLM time', formatTiming(meta.timing?.llmMs)],
+    ['Extract time', formatTiming(meta.timing?.extractMs)],
+    ['Retry used', meta.timing?.usedRetry ? 'Yes' : 'No'],
     ['Triggers', meta.degradationTriggers?.join(', ') || 'None'],
   ];
 
@@ -1134,7 +1208,7 @@ function buildListDetailHtml(result) {
 
   const strengthsHtml = buildInsightListHtml(result.strengths, 'No strengths returned.');
   const gapsHtml = buildInsightListHtml(result.gaps, 'No gaps returned.');
-  const sponsorshipHtml = buildListDetailSponsorshipHtml(result.sponsorshipAssessment);
+  const sponsorshipHtml = buildListDetailSponsorshipHtml(result.sponsorshipAssessment, metadata);
   const metadataHtml = buildListDetailMetadataHtml(metadata);
 
   return `
@@ -1195,6 +1269,9 @@ function buildScoreMetaLines(result) {
   if (result.metadata?.capLimit !== undefined) {
     lines.push(`Cap limit: ${result.metadata.capLimit}`);
   }
+  if (isSponsorshipHardBlockResult(result)) {
+    lines.push('Final score was forced to 0 by a sponsorship hard blocker.');
+  }
   return lines;
 }
 
@@ -1206,15 +1283,19 @@ function buildInsightListHtml(items = [], fallbackText = '') {
   return `<ul class="insight-list">${items.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`;
 }
 
-function buildListDetailSponsorshipHtml(assessment) {
-  if (!assessment || isUnsupportedSponsorship(assessment)) {
+function buildListDetailSponsorshipHtml(assessment, meta = {}) {
+  if (!assessment) {
     return '';
   }
 
-  const sections = [];
+  const status = buildSponsorshipStatus(assessment, meta);
+  const sections = [
+    `<div class="sponsor-status-row"><span class="sponsor-status ${status.className}">${escapeHtml(status.label)}</span></div>`,
+  ];
   if (assessment.conclusion) {
-    sections.push(`<div>${escapeHtml(assessment.conclusion)}</div>`);
+    sections.push(`<div class="sponsor-conclusion ${status.className}">${escapeHtml(assessment.conclusion)}</div>`);
   }
+  sections.push(`<div><strong>Scoring mode:</strong> ${meta.includeSponsorshipInScore === false ? 'Sponsorship not needed for this run' : 'Sponsorship required for this run'}</div>`);
   if (assessment.evidence?.length) {
     sections.push(`<div>${assessment.evidence.map(item => escapeHtml(item)).join('<br/>')}</div>`);
   }
@@ -1240,13 +1321,52 @@ function buildListDetailSponsorshipHtml(assessment) {
   `;
 }
 
+function buildSponsorshipStatus(assessment, meta = {}) {
+  const conclusion = String(assessment?.conclusion || '').toLowerCase();
+  const note = String(assessment?.uncertaintyNote || '').toLowerCase();
+  const sponsorshipRequired = meta.includeSponsorshipInScore !== false;
+  const explicitlyNotOffered = conclusion.includes('not offered');
+  const conflictingSignals = note.includes('conflicting sponsorship signals')
+    || conclusion.includes('jd suggests sponsorship support');
+  const unsupported = isUnsupportedSponsorship(assessment);
+
+  if (!sponsorshipRequired) {
+    return { label: 'Not needed', className: 'neutral' };
+  }
+
+  if ((assessment?.indRegistered === false && assessment?.sponsorshipImpactOnOverall === 'decrease') || explicitlyNotOffered) {
+    return { label: 'Hard blocker', className: 'negative' };
+  }
+
+  if (assessment?.indRegistered === true && !explicitlyNotOffered) {
+    return { label: 'Supported', className: 'positive' };
+  }
+
+  if (conflictingSignals) {
+    return { label: 'Conflicting signals', className: 'warning' };
+  }
+
+  if (unsupported) {
+    return { label: 'Not supported', className: 'unsupported' };
+  }
+
+  return { label: 'Unknown', className: 'unknown' };
+}
+
 function buildListDetailMetadataHtml(meta) {
   const rows = [
     ['Analysis time', meta.analysisTimestamp || 'N/A'],
     ['Model', meta.modelUsed || 'N/A'],
+    ['Analysis mode', getPresetLabel(meta.analysisPreset || DEFAULT_ANALYSIS_PRESET)],
+    ['Profile type', meta.isCustomProfile ? 'Custom' : 'Preset'],
+    ['Needs sponsorship', meta.includeSponsorshipInScore === false ? 'No' : 'Yes'],
     ['Penalty coefficient', meta.penaltyCoefficient ?? 'N/A'],
     ['Cap limit', meta.capLimit ?? 'N/A'],
     ['Raw score', meta.rawScoreBeforePenalty ?? 'N/A'],
+    ['Total time', formatTiming(meta.timing?.totalMs)],
+    ['LLM time', formatTiming(meta.timing?.llmMs)],
+    ['Extract time', formatTiming(meta.timing?.extractMs)],
+    ['Retry used', meta.timing?.usedRetry ? 'Yes' : 'No'],
     ['Triggers', meta.degradationTriggers?.join(', ') || 'None'],
   ];
 
@@ -1270,6 +1390,16 @@ function isUnsupportedSponsorship(assessment) {
 
   return assessment.indRegistered == null
     && (assessment.sponsorshipImpactOnOverall === 'noChange' || !assessment.evidence?.length);
+}
+
+function isSponsorshipHardBlockResult(result) {
+  const assessment = result?.sponsorshipAssessment;
+  const metadata = result?.metadata || {};
+  return result?.overallMatchPercent === 0
+    && Number(metadata.rawScoreBeforePenalty) > 0
+    && metadata.includeSponsorshipInScore === true
+    && assessment?.sponsorshipImpactOnOverall === 'decrease'
+    && assessment?.indRegistered === false;
 }
 
 function getGradientColor(score, position) {
@@ -1593,6 +1723,18 @@ function hydrateProviderProfiles(config) {
     temperature: activeProfile.temperature,
     timeoutMs: activeProfile.timeoutMs,
     maxRetries: activeProfile.maxRetries,
+    analysisPreset: config?.analysisPreset || DEFAULT_ANALYSIS_PRESET,
+    promptTuningMode: config?.promptTuningMode || config?.analysisPreset || DEFAULT_ANALYSIS_PRESET,
+    includeSponsorshipInScore: config?.includeSponsorshipInScore !== false,
+    useCustomWeights: config?.useCustomWeights === true,
+    customWeights: sanitizeCustomWeights(config?.customWeights),
+    additionalPromptInstructions: typeof config?.additionalPromptInstructions === 'string'
+      ? config.additionalPromptInstructions
+      : '',
+    customPromptTemplate: typeof config?.customPromptTemplate === 'string'
+      ? config.customPromptTemplate
+      : '',
+    enableDiagnostics: config?.enableDiagnostics !== false,
     providerProfiles,
   };
 }
@@ -1655,6 +1797,175 @@ function createDefaultProviderProfile(providerId) {
 
 function DEFAULT_PROVIDER_MODEL() {
   return 'gpt-4o';
+}
+
+function applyAnalysisSettingsToForm() {
+  if (!currentConfig) {
+    return;
+  }
+
+  const preset = currentConfig.analysisPreset || DEFAULT_ANALYSIS_PRESET;
+  const useCustomWeights = currentConfig.useCustomWeights === true;
+  const includeSponsorshipInScore = currentConfig.includeSponsorshipInScore !== false;
+  const previewWeights = useCustomWeights
+    ? getEffectiveWeights(currentConfig, includeSponsorshipInScore)
+    : getEffectiveWeights({ analysisPreset: preset }, includeSponsorshipInScore);
+
+  els.settingAnalysisPreset.value = preset;
+  els.settingIncludeSponsorship.checked = includeSponsorshipInScore;
+  els.settingModePromptPreview.value = getPromptTuningInstructions(preset);
+  els.settingAdditionalInstructions.value = currentConfig.additionalPromptInstructions || '';
+  els.settingUseCustomWeights.checked = useCustomWeights;
+  els.settingCustomPrompt.value = currentConfig.customPromptTemplate || '';
+  els.settingEnableDiagnostics.checked = currentConfig.enableDiagnostics !== false;
+
+  setWeightInputsFromWeights(previewWeights);
+  updateWeightInputState();
+  updateWeightTotalHint();
+}
+
+function readAnalysisSettingsForm() {
+  const analysisPreset = els.settingAnalysisPreset.value || DEFAULT_ANALYSIS_PRESET;
+  const includeSponsorshipInScore = els.settingIncludeSponsorship.checked;
+  const weightValues = readWeightInputs();
+  const customWeights = sanitizeCustomWeights(weightValues);
+  const useCustomWeights = els.settingUseCustomWeights.checked && Object.keys(customWeights).length > 0;
+
+  return {
+    analysisPreset,
+    promptTuningMode: analysisPreset,
+    includeSponsorshipInScore,
+    useCustomWeights,
+    customWeights: useCustomWeights ? customWeights : {},
+    additionalPromptInstructions: els.settingAdditionalInstructions.value.trim(),
+    customPromptTemplate: useCustomWeights ? els.settingCustomPrompt.value.trim() : '',
+    enableDiagnostics: els.settingEnableDiagnostics.checked,
+  };
+}
+
+function getWeightInputs() {
+  return [
+    els.weightSkills,
+    els.weightResponsibility,
+    els.weightYears,
+    els.weightEducation,
+    els.weightLangLocation,
+    els.weightSponsorship,
+  ];
+}
+
+function setWeightInputsFromWeights(weights) {
+  for (const [itemName, fieldName] of Object.entries(WEIGHT_FIELD_MAP)) {
+    const value = Number(weights?.[itemName] || 0);
+    els[fieldName].value = Math.round(value * 100);
+  }
+}
+
+function readWeightInputs() {
+  return Object.entries(WEIGHT_FIELD_MAP).reduce((acc, [itemName, fieldName]) => {
+    const percentage = Number.parseFloat(els[fieldName].value);
+    if (Number.isFinite(percentage) && percentage > 0) {
+      acc[itemName] = percentage / 100;
+    }
+    return acc;
+  }, {});
+}
+
+function updateWeightInputState() {
+  const disabled = !els.settingUseCustomWeights.checked;
+  getWeightInputs().forEach(input => {
+    input.disabled = disabled;
+  });
+  els.weightSponsorship.disabled = disabled || !els.settingIncludeSponsorship.checked;
+  els.settingCustomPrompt.disabled = !els.settingUseCustomWeights.checked;
+}
+
+function updateWeightTotalHint() {
+  const weights = readWeightInputs();
+  const total = Object.entries(weights).reduce((sum, [itemName, value]) => {
+    if (!els.settingIncludeSponsorship.checked && itemName === ItemNames.SPONSORSHIP) {
+      return sum;
+    }
+    return sum + value;
+  }, 0);
+  const percentage = Math.round(total * 100);
+  const sponsorshipNote = els.settingIncludeSponsorship.checked
+    ? 'Sponsorship is treated as required for this scoring run.'
+    : 'The plugin assumes you do not need sponsorship, and the remaining weights will be renormalized to 100%.';
+  const suffix = els.settingUseCustomWeights.checked
+    ? `Custom weights will be normalized on save. ${sponsorshipNote}`
+    : `Preset preview. ${sponsorshipNote}`;
+  els.settingWeightTotal.textContent = `Current total: ${percentage}% - ${suffix}`;
+}
+
+function handleAnalysisPresetChange() {
+  if (!currentConfig) {
+    return;
+  }
+
+  const preset = els.settingAnalysisPreset.value || DEFAULT_ANALYSIS_PRESET;
+  currentConfig.analysisPreset = preset;
+  currentConfig.promptTuningMode = preset;
+  els.settingModePromptPreview.value = getPromptTuningInstructions(preset);
+
+  if (!els.settingUseCustomWeights.checked) {
+    setWeightInputsFromWeights(getEffectiveWeights(
+      { analysisPreset: preset },
+      els.settingIncludeSponsorship.checked,
+    ));
+  }
+  updateWeightInputState();
+  updateWeightTotalHint();
+}
+
+function handleUseCustomWeightsToggle() {
+  updateWeightInputState();
+  if (!els.settingUseCustomWeights.checked) {
+    setWeightInputsFromWeights(getEffectiveWeights(
+      { analysisPreset: els.settingAnalysisPreset.value || DEFAULT_ANALYSIS_PRESET },
+      els.settingIncludeSponsorship.checked,
+    ));
+  } else if (!Object.keys(readWeightInputs()).length) {
+    setWeightInputsFromWeights(getEffectiveWeights(
+      { analysisPreset: els.settingAnalysisPreset.value || DEFAULT_ANALYSIS_PRESET },
+      els.settingIncludeSponsorship.checked,
+    ));
+  }
+  updateWeightTotalHint();
+}
+
+function handleIncludeSponsorshipToggle() {
+  if (!currentConfig) {
+    return;
+  }
+
+  currentConfig.includeSponsorshipInScore = els.settingIncludeSponsorship.checked;
+
+  if (!els.settingUseCustomWeights.checked) {
+    setWeightInputsFromWeights(getEffectiveWeights(
+      { analysisPreset: els.settingAnalysisPreset.value || DEFAULT_ANALYSIS_PRESET },
+      els.settingIncludeSponsorship.checked,
+    ));
+  }
+
+  updateWeightInputState();
+  updateWeightTotalHint();
+}
+
+function resetWeightsToPreset() {
+  const preset = els.settingAnalysisPreset.value || DEFAULT_ANALYSIS_PRESET;
+  setWeightInputsFromWeights(getEffectiveWeights(
+    { analysisPreset: preset },
+    els.settingIncludeSponsorship.checked,
+  ));
+  updateWeightTotalHint();
+}
+
+function formatTiming(value) {
+  if (!Number.isFinite(value) || value <= 0) {
+    return 'N/A';
+  }
+  return `${Math.round(value)} ms`;
 }
 
 function escapeHtml(value) {

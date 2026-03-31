@@ -24,6 +24,21 @@ const SPONSORSHIP_KEYWORDS = [
   'sponsorship available',
 ];
 
+const NO_SPONSORSHIP_KEYWORDS = [
+  'no visa sponsorship',
+  'no sponsorship',
+  'cannot sponsor',
+  'can not sponsor',
+  'unable to sponsor',
+  'do not sponsor',
+  'does not sponsor',
+  'will not sponsor',
+  'without sponsorship',
+  'must have valid work authorization',
+  'must be authorized to work',
+  'no relocation support',
+];
+
 const COMPANY_STOPWORDS = new Set([
   'the',
   'and',
@@ -66,6 +81,15 @@ export function extractSponsorshipKeywords(description) {
 
   const lower = description.toLowerCase();
   return SPONSORSHIP_KEYWORDS.filter(keyword => lower.includes(keyword));
+}
+
+export function extractNoSponsorshipKeywords(description) {
+  if (!description) {
+    return [];
+  }
+
+  const lower = description.toLowerCase();
+  return NO_SPONSORSHIP_KEYWORDS.filter(keyword => lower.includes(keyword));
 }
 
 export function normalizeCompanyName(name) {
@@ -244,6 +268,7 @@ async function loadINDData() {
 export async function buildSponsorshipContext(companyName, location, description) {
   const registry = await checkINDRegistry(companyName);
   const keywords = extractSponsorshipKeywords(description);
+  const noSponsorshipKeywords = extractNoSponsorshipKeywords(description);
 
   const lines = [];
   if (registry.found) {
@@ -265,10 +290,16 @@ export async function buildSponsorshipContext(companyName, location, description
   } else {
     lines.push('JD sponsorship keywords: none found.');
   }
+  if (noSponsorshipKeywords.length) {
+    lines.push(`JD no-sponsorship keywords: ${noSponsorshipKeywords.join(', ')}`);
+  } else {
+    lines.push('JD no-sponsorship keywords: none found.');
+  }
 
   return {
     registry,
     keywords,
+    noSponsorshipKeywords,
     contextText: lines.join('\n'),
     kmEligible: registry.found,
     displayLabel: registry.found ? 'KM' : null,

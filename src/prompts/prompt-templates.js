@@ -2,25 +2,28 @@
  * Prompt templates used by the matching engine.
  */
 
-export function buildMatchingPrompt(jdData, resumeText, isNetherlands, sponsorshipContext) {
-  const activeWeights = isNetherlands
-    ? `
-- Skills & Experience Relevance: 0.30
-- Responsibility Coverage: 0.25
-- Years of Experience: 0.15
-- Education & Certifications: 0.15
-- Language & Location: 0.10
-- Sponsorship Fit: 0.05`
-    : `
-- Skills & Experience Relevance: 0.316
-- Responsibility Coverage: 0.263
-- Years of Experience: 0.158
-- Education & Certifications: 0.158
-- Language & Location: 0.105`;
+export const MATCH_PROMPT_VERSION = 'v4';
 
-  const sponsorshipInstructions = isNetherlands
+export function buildMatchingPrompt(jdData, resumeText, isNetherlands, sponsorshipContext, scoringProfile) {
+  const weightsApplied = scoringProfile?.weightsApplied || {};
+  const includeSponsorshipInScore = scoringProfile?.includeSponsorshipInScore === true;
+  const hasCustomPromptTemplate = typeof scoringProfile?.customPromptTemplate === 'string'
+    && scoringProfile.customPromptTemplate.trim().length > 0;
+  const activeWeights = Object.entries(weightsApplied)
+    .map(([itemName, weight]) => `- ${itemName}: ${Number(weight).toFixed(3)}`)
+    .join('\n');
+
+  const tuningInstructions = hasCustomPromptTemplate
+    ? scoringProfile.customPromptTemplate.trim()
+    : getPromptTuningInstructions(scoringProfile?.promptTuningMode);
+  const additionalInstructions = scoringProfile?.additionalPromptInstructions
+    ? `\nAdditional user instructions:\n${scoringProfile.additionalPromptInstructions}`
+    : '';
+
+  const sponsorshipInstructions = isNetherlands && includeSponsorshipInScore
     ? `
-This is a Netherlands role. You must include "Sponsorship Fit" in matchBreakdown.
+This is a Netherlands role, and the candidate needs employer sponsorship.
+You must include "Sponsorship Fit" in matchBreakdown and treat sponsorship viability as relevant to overall fit.
 
 Use this precomputed IND sponsorship context:
 ${sponsorshipContext || 'No sponsorship context available.'}
@@ -43,6 +46,17 @@ This is not a Netherlands role.
 - sponsorshipAssessment must still be present with a neutral conclusion
 - set sponsorshipImpactOnOverall to "noChange"
 - set indRegistered to null`;
+
+  const sponsorshipExclusionInstructions = isNetherlands && !includeSponsorshipInScore
+    ? `
+This is a Netherlands role, but the candidate does not need employer sponsorship for this run.
+
+Rules:
+- Do not include "Sponsorship Fit" in matchBreakdown
+- sponsorshipAssessment must still be present and may describe sponsorship evidence
+- sponsorshipImpactOnOverall must be "noChange"
+- make it clear in the conclusion or evidence that sponsorship was not needed for this evaluation`
+    : '';
 
   const systemPrompt = `You are a strict job match scoring engine.
 
@@ -84,6 +98,7 @@ Rules:
 7. sponsorshipSignal must be one of "included", "notIncluded", "unavailable".
 8. strengths and gaps must be concise global summary bullets.
 9. If data is missing, use empty arrays, null, or a cautious explanation.
+10. Follow the requested analysis style while still grounding every claim in the resume and JD.
 
 Scoring guidance:
 - Skills & Experience Relevance: compare required and preferred skills with the resume.
@@ -95,7 +110,11 @@ Scoring guidance:
 Active weights:
 ${activeWeights}
 
+Analysis style guidance:
+${tuningInstructions}
+
 ${sponsorshipInstructions}
+${sponsorshipExclusionInstructions}
 
 Output JSON shape:
 {
@@ -137,9 +156,40 @@ ${jdData.description || 'No job description available.'}
 Resume:
 ${resumeText || 'No resume available.'}
 
+Selected scoring preset: ${scoringProfile?.analysisPreset || 'balanced'}
+Prompt tuning mode: ${scoringProfile?.promptTuningMode || scoringProfile?.analysisPreset || 'balanced'}
+Custom weights enabled: ${scoringProfile?.isCustomProfile === true ? 'yes' : 'no'}
+Candidate needs sponsorship: ${includeSponsorshipInScore ? 'yes' : 'no'}
+${additionalInstructions}
+
 Return the JSON object only.`;
 
   return { systemPrompt, userPrompt };
+}
+
+export function getPromptTuningInstructions(mode = 'balanced') {
+  switch (mode) {
+    case 'strict':
+      return `Treat missing must-have requirements conservatively.
+- Penalize missing core skills more strongly.
+- Be stricter about explicit years-of-experience requirements.
+- Do not inflate fit based on vague transferable potential alone.`;
+    case 'potential':
+      return `Favor growth potential when evidence supports it.
+- Give more credit to transferable responsibilities and adjacent skills.
+- Do not over-penalize limited years of experience when the JD does not require strict seniority.
+- Surface upside in strengths when the candidate can plausibly grow into the role.`;
+    case 'sponsorship-first':
+      return `Prioritize sponsorship viability for Netherlands roles.
+- Make sponsorship and KM evidence more prominent in strengths and gaps.
+- Treat unclear sponsorship signals as an important source of uncertainty.
+- Do not let a strong profile completely hide sponsorship risk.`;
+    case 'balanced':
+    default:
+      return `Keep the evaluation balanced and practical.
+- Compare skills, responsibilities, experience, language, and sponsorship without over-indexing on one dimension.
+- Avoid extreme penalties unless the JD clearly requires them.`;
+  }
 }
 
 export function buildResumeExtractionPrompt(resumeText) {

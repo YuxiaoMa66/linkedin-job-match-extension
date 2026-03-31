@@ -1,6 +1,6 @@
 {
   "name": "linkedin-plugin",
-  "version": "1.0.0",
+  "version": "0.1.1",
   "description": "Chrome extension for LinkedIn resume-to-job matching with cached scoring and Netherlands sponsorship checks.",
   "main": "index.js",
   "scripts": {

@@ -22,6 +22,18 @@ export async function loadConfig() {
         ...merged,
         ...activeProfile,
         providerProfiles,
+        analysisPreset: merged.analysisPreset || DEFAULT_MODEL_CONFIG.analysisPreset,
+        promptTuningMode: merged.promptTuningMode || merged.analysisPreset || DEFAULT_MODEL_CONFIG.promptTuningMode,
+        includeSponsorshipInScore: merged.includeSponsorshipInScore !== false,
+        useCustomWeights: merged.useCustomWeights === true,
+        customWeights: normalizeCustomWeights(merged.customWeights),
+        additionalPromptInstructions: typeof merged.additionalPromptInstructions === 'string'
+          ? merged.additionalPromptInstructions
+          : '',
+        customPromptTemplate: typeof merged.customPromptTemplate === 'string'
+          ? merged.customPromptTemplate
+          : '',
+        enableDiagnostics: merged.enableDiagnostics !== false,
       };
     }
   } catch (err) {
@@ -60,6 +72,18 @@ export async function saveConfig(config) {
       [STORAGE_KEY]: {
         ...merged,
         providerProfiles,
+        analysisPreset: merged.analysisPreset || DEFAULT_MODEL_CONFIG.analysisPreset,
+        promptTuningMode: merged.promptTuningMode || merged.analysisPreset || DEFAULT_MODEL_CONFIG.promptTuningMode,
+        includeSponsorshipInScore: merged.includeSponsorshipInScore !== false,
+        useCustomWeights: merged.useCustomWeights === true,
+        customWeights: normalizeCustomWeights(merged.customWeights),
+        additionalPromptInstructions: typeof merged.additionalPromptInstructions === 'string'
+          ? merged.additionalPromptInstructions
+          : '',
+        customPromptTemplate: typeof merged.customPromptTemplate === 'string'
+          ? merged.customPromptTemplate
+          : '',
+        enableDiagnostics: merged.enableDiagnostics !== false,
         _savedAt: new Date().toISOString(),
       },
     });
@@ -112,4 +136,18 @@ function getDefaultProfile(providerId) {
     timeoutMs: DEFAULT_MODEL_CONFIG.timeoutMs,
     maxRetries: DEFAULT_MODEL_CONFIG.maxRetries,
   };
+}
+
+function normalizeCustomWeights(customWeights) {
+  if (!customWeights || typeof customWeights !== 'object') {
+    return {};
+  }
+
+  return Object.entries(customWeights).reduce((acc, [key, value]) => {
+    const numericValue = Number.parseFloat(value);
+    if (Number.isFinite(numericValue) && numericValue > 0) {
+      acc[key] = numericValue;
+    }
+    return acc;
+  }, {});
 }

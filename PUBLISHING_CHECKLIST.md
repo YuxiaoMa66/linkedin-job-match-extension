@@ -23,6 +23,6 @@
 
 - [ ] Build `dist/`
 - [ ] Zip `dist/`
-- [ ] Create a GitHub Release such as `v0.1.0`
+- [ ] Create a GitHub Release such as `v0.1.1`
 - [ ] Upload the built zip as a release asset
 - [ ] Add installation steps in the release notes

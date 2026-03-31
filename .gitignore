@@ -4,6 +4,7 @@ dist/
 *.log
 build_log.txt
 error.log
+*.zip
 
 .DS_Store
 Thumbs.db
