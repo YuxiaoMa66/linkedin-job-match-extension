@@ -37,6 +37,7 @@
 - visible `Blocked` badge when the final score is forced to `0`
 - provider-specific settings remain isolated per provider
 - improved analysis controls for advanced users without removing a simple preset flow
+- clearer resume-upload failure messaging when the wrong extension folder is loaded
 
 ## Sponsorship behavior in v0.1.1
 
