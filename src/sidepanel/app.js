@@ -271,9 +271,16 @@ async function extractResumeText(file) {
 }
 
 async function extractPDFText(file) {
-  const pdfUrl = chrome.runtime.getURL('lib/pdf.min.mjs');
-  const pdfjsLib = await import(pdfUrl);
-  pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('lib/pdf.worker.min.mjs');
+  const pdfjsLib = await importPackagedModule([
+    'lib/pdf.min.mjs',
+    'lib/pdf.mjs',
+  ], 'PDF parser');
+  pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL(
+    await resolvePackagedAsset([
+      'lib/pdf.worker.min.mjs',
+      'lib/pdf.worker.mjs',
+    ], 'PDF worker'),
+  );
 
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -290,11 +297,64 @@ async function extractPDFText(file) {
 }
 
 async function extractDOCXText(file) {
-  const mammothUrl = chrome.runtime.getURL('lib/mammoth.browser.min.js');
-  const mammoth = await import(mammothUrl);
+  const mammoth = await importPackagedModule([
+    'lib/mammoth.browser.min.js',
+  ], 'DOCX parser');
   const arrayBuffer = await file.arrayBuffer();
   const result = await mammoth.extractRawText({ arrayBuffer });
   return result.value;
+}
+
+async function importPackagedModule(candidates, label) {
+  let lastError = null;
+
+  for (const relativePath of candidates) {
+    try {
+      const moduleUrl = chrome.runtime.getURL(relativePath);
+      return await import(moduleUrl);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw buildPackagedModuleError(label, lastError);
+}
+
+async function resolvePackagedAsset(candidates, label) {
+  let lastError = null;
+
+  for (const relativePath of candidates) {
+    try {
+      const assetUrl = chrome.runtime.getURL(relativePath);
+      const response = await fetch(assetUrl, { method: 'GET' });
+      if (response.ok) {
+        return relativePath;
+      }
+      lastError = new Error(`${label} returned ${response.status}`);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw buildPackagedModuleError(label, lastError);
+}
+
+function buildPackagedModuleError(label, originalError) {
+  const message = (originalError && originalError.message) || '';
+  const looksLikeMissingPackagedAsset =
+    /Failed to fetch dynamically imported module/i.test(message) ||
+    /Failed to fetch/i.test(message) ||
+    /Importing a module script failed/i.test(message) ||
+    /ERR_FILE_NOT_FOUND/i.test(message) ||
+    /404/i.test(message);
+
+  if (looksLikeMissingPackagedAsset) {
+    return new Error(
+      `${label} files are missing from this extension package. Please load the built dist folder or use the GitHub release zip, not the source root folder.`,
+    );
+  }
+
+  return new Error(`${label} could not be loaded: ${message || 'Unknown error.'}`);
 }
 
 function setupAnalyzeButtons() {

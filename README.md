@@ -201,6 +201,12 @@ vite.config.js           Vite build config
 
 ## Installation
 
+Important:
+
+- Do not load the project source root folder directly as the extension.
+- Always load the built `dist/` folder, or use the GitHub release package and load the extracted extension folder.
+- If the wrong folder is loaded, the UI may still open, but resume upload can fail because packaged parser files are missing.
+
 ### Option A: Run from source
 
 ```bash
@@ -229,6 +235,11 @@ If you publish a release zip:
 4. enable `Developer mode`
 5. click `Load unpacked`
 6. select the extracted extension folder
+
+Common mistake to avoid:
+
+- GitHub source archives are not the same as the built extension package.
+- If someone downloads the repository source and loads the root folder instead of `dist/`, resume parsing for `PDF` or `DOCX` files may fail.
 
 ## Configuration
 

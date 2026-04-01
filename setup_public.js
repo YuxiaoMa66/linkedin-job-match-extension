@@ -46,6 +46,8 @@ copyDir(path.join(projectRoot, 'assets', 'icons'), path.join(publicDir, 'assets'
 const pdfjsSrc = path.join(projectRoot, 'node_modules', 'pdfjs-dist', 'build');
 copyFile(path.join(pdfjsSrc, 'pdf.min.mjs'), path.join(publicDir, 'lib', 'pdf.min.mjs'));
 copyFile(path.join(pdfjsSrc, 'pdf.worker.min.mjs'), path.join(publicDir, 'lib', 'pdf.worker.min.mjs'));
+copyFile(path.join(pdfjsSrc, 'pdf.min.mjs'), path.join(publicDir, 'lib', 'pdf.mjs'));
+copyFile(path.join(pdfjsSrc, 'pdf.worker.min.mjs'), path.join(publicDir, 'lib', 'pdf.worker.mjs'));
 
 const mammothSrc = path.join(projectRoot, 'node_modules', 'mammoth');
 copyFile(path.join(mammothSrc, 'mammoth.browser.min.js'), path.join(publicDir, 'lib', 'mammoth.browser.min.js'));

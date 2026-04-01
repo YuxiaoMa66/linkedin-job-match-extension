@@ -49,3 +49,4 @@
 
 - Existing older caches may not be reused because cache context is now stricter
 - This version is focused on scoring quality, controls, and explainability rather than a major UI redesign
+- For manual installation, users must load the built `dist/` folder or the extracted release package, not the repository source root
