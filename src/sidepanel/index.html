@@ -79,6 +79,108 @@
         </div>
       </section>
 
+      <section class="card" id="library-card">
+        <div class="card-header">
+          <div>
+            <p class="eyebrow">Library</p>
+            <h2>History and saved positions</h2>
+          </div>
+          <button class="btn-secondary" id="library-toggle" type="button">Expand</button>
+        </div>
+        <div class="library-body hidden" id="library-body">
+          <div class="library-controls">
+            <div class="segmented-control">
+              <button class="segmented-btn active" id="library-mode-history" data-library-mode="history" type="button">History</button>
+              <button class="segmented-btn" id="library-mode-saved" data-library-mode="saved" type="button">Saved</button>
+            </div>
+            <div class="segmented-control">
+              <button class="segmented-btn active" id="library-source-linkedin" data-library-source="linkedin" type="button">LinkedIn</button>
+              <button class="segmented-btn" id="library-source-inserted" data-library-source="inserted" type="button">Inserted</button>
+            </div>
+          </div>
+          <p class="job-list-summary" id="library-summary">No history yet.</p>
+          <div class="job-list" id="library-list"></div>
+          <div class="job-detail-panel hidden" id="library-detail-panel">
+            <div class="job-detail-toolbar">
+              <button class="btn-secondary" id="library-detail-back" type="button">Back</button>
+              <span class="status-badge detected">Detail</span>
+            </div>
+            <div class="job-detail-content" id="library-detail-content"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="manual-jobs-card">
+        <div class="card-header">
+          <div>
+            <p class="eyebrow">Inserted jobs</p>
+            <h2>Jobs from insert</h2>
+          </div>
+          <button class="btn-secondary" id="manual-jobs-toggle" type="button">Expand</button>
+        </div>
+        <div class="manual-jobs-body hidden" id="manual-jobs-body">
+          <div class="form-group">
+            <label for="manual-raw-input">Auto-detect from pasted job text</label>
+            <textarea id="manual-raw-input" class="form-input form-textarea" placeholder="Paste a job page, JD text, or copied posting content here. The plugin will try to detect title, company, location, description, and source URL."></textarea>
+          </div>
+          <div class="inline-actions">
+            <button class="btn-secondary" id="manual-detect-btn" type="button">Detect fields</button>
+            <div class="segmented-control detect-mode-control">
+              <button class="segmented-btn active" id="manual-detect-rule" data-manual-detect-mode="rule" type="button">Rule detect</button>
+              <button class="segmented-btn" id="manual-detect-ai" data-manual-detect-mode="ai" type="button">Model detect</button>
+            </div>
+            <button class="btn-secondary hidden" id="manual-clear-btn" type="button">Clear</button>
+          </div>
+
+          <div class="form-group">
+            <label for="manual-title">Job title</label>
+            <input type="text" id="manual-title" class="form-input" placeholder="Senior Data Analyst" />
+          </div>
+
+          <div class="form-group">
+            <label for="manual-company">Company</label>
+            <input type="text" id="manual-company" class="form-input" placeholder="Example Company" />
+          </div>
+
+          <div class="form-group">
+            <label for="manual-location">Location</label>
+            <input type="text" id="manual-location" class="form-input" placeholder="Berlin, Germany" />
+          </div>
+
+          <div class="form-group">
+            <label for="manual-source-url">Source URL (optional)</label>
+            <input type="url" id="manual-source-url" class="form-input" placeholder="https://example.com/job/123" />
+          </div>
+
+          <div class="form-group">
+            <label for="manual-description">Job description</label>
+            <textarea id="manual-description" class="form-input form-textarea" placeholder="Paste or confirm the full job description here."></textarea>
+          </div>
+
+          <div class="inline-actions">
+            <button class="btn-primary" id="manual-analyze-btn" type="button">Save and analyze inserted job</button>
+          </div>
+          <p class="save-hint" id="manual-save-hint"></p>
+
+          <div class="manual-job-list-shell">
+            <div class="card-header compact-header">
+              <div>
+                <p class="eyebrow">Current inserted</p>
+                <h2>Current inserted analyses</h2>
+              </div>
+            </div>
+            <div class="job-list" id="manual-job-list"></div>
+            <div class="job-detail-panel hidden" id="manual-detail-panel">
+              <div class="job-detail-toolbar">
+                <button class="btn-secondary" id="manual-detail-back" type="button">Back</button>
+                <span class="status-badge detected">Detail</span>
+              </div>
+              <div class="job-detail-content" id="manual-detail-content"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section class="card hidden" id="job-list-card">
         <div class="card-header">
           <div>
@@ -129,6 +231,13 @@
 
       <div class="results-container hidden" id="results-container">
         <section class="card score-card">
+          <div class="card-header compact-header result-card-header">
+            <div>
+              <p class="eyebrow">Result</p>
+              <h2>Analysis result</h2>
+            </div>
+            <button class="star-btn hidden" id="save-position-btn" type="button" aria-label="Save position" title="Save position">☆</button>
+          </div>
           <div class="score-ring-wrapper">
             <div class="score-ring">
               <svg viewBox="0 0 120 120">

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LinkedIn Job Match",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "AI-powered resume vs job description matching with Netherlands sponsorship assessment",
   "permissions": [
     "activeTab",

@@ -2,12 +2,12 @@
 
 # LinkedIn Job Match
 
-`LinkedIn Job Match` is a Chrome Manifest V3 extension that compares a resume against LinkedIn job descriptions, shows structured fit results inside LinkedIn, and adds Netherlands sponsorship signals directly on the page.
+`LinkedIn Job Match` is a Chrome Manifest V3 extension for faster job screening on LinkedIn and beyond. It compares a resume against job descriptions, injects match badges into LinkedIn, keeps reusable analysis history, and adds Netherlands sponsorship signals using a local IND-derived dataset.
 
 Current release metadata:
 
 - Extension name: `LinkedIn Job Match`
-- Current manifest version: `0.1.1`
+- Current manifest version: `0.1.2`
 - Tech stack: `Chrome Extension MV3 + Vite + Vanilla JavaScript`
 
 ## Extension Snapshot
@@ -16,7 +16,7 @@ Current release metadata:
 
 ## What It Does
 
-The extension is built for faster job screening on LinkedIn. It can:
+The extension is designed to reduce repetitive JD screening work. It can:
 
 - read job descriptions from LinkedIn detail pages and search result pages
 - persist the uploaded resume locally until the user replaces or removes it
@@ -25,19 +25,26 @@ The extension is built for faster job screening on LinkedIn. It can:
 - inject match badges and metadata badges directly into LinkedIn
 - detect JD language, required experience, and required job languages
 - evaluate Netherlands sponsorship signals using a local IND-derived sponsor dataset
+- save interesting positions for later review
+- keep separate analysis history for LinkedIn jobs and manually inserted jobs
+- let users paste jobs from non-LinkedIn sources and analyze them inside the same side panel
 
-## What's New In v0.1.1
+## What's New In v0.1.2
 
-- Unified `Analysis mode` with four presets: `Strict`, `Balanced`, `Potential`, and `Sponsorship-first`
-- `I need employer sponsorship` switch so users can explicitly decide whether sponsorship should affect scoring
-- Deterministic sponsorship scoring instead of letting the model drift on sponsorship outcomes
-- `Supported`, `Hard blocker`, `Conflicting signals`, and `Not needed` sponsorship states
-- `Enable full custom scoring` with:
-  - fully custom weights
-  - a full custom prompt override
-  - additional prompt instructions
-- clearer diagnostics for raw score vs. final score
-- a visible `Blocked` badge when a hard sponsorship blocker forces the final score to `0`
+- New `Library` section for:
+  - `History`
+  - `Saved`
+  - `LinkedIn`
+  - `Inserted`
+- Saved positions can now be starred and revisited later
+- History and saved items open in an in-card secondary detail view with a back button
+- Inserted jobs now have their own section above list mode
+- Users can paste jobs from other sources and choose:
+  - `Rule detect`
+  - `Model detect`
+- Inserted jobs can be analyzed, re-analyzed, edited, saved, deleted, and reopened from history
+- Single history entries and saved entries can be removed individually
+- Detail views no longer auto-scroll the side panel to the bottom when opened
 
 ## Core Features
 
@@ -73,7 +80,30 @@ On LinkedIn search result pages, the extension can:
 - re-analyze the current job or the shown jobs
 - open a second-level detail view inside the side panel when a list item is clicked
 
-### 4. Inline LinkedIn badges
+### 4. Library and saved positions
+
+The new `Library` section lets users:
+
+- switch between `History` and `Saved`
+- switch between `LinkedIn` and `Inserted`
+- reopen prior analyses in an in-card detail view
+- remove single history entries
+- remove single saved positions
+
+### 5. Inserted jobs
+
+The `Jobs from insert` section supports pasted jobs from other sources.
+
+Users can:
+
+- paste raw job text
+- choose `Rule detect` for fast local extraction
+- choose `Model detect` for AI-assisted structuring
+- review detected fields
+- save and analyze the inserted job
+- reopen inserted job results later
+
+### 6. Inline LinkedIn badges
 
 The extension injects badges directly into LinkedIn's native UI.
 
@@ -85,7 +115,7 @@ Supported inline signals include:
 - required experience
 - required job languages
 
-### 5. Multi-provider model support
+### 7. Multi-provider model support
 
 The settings UI supports separate profiles for:
 
@@ -111,25 +141,29 @@ Each provider keeps its own:
 
 This shows score badges injected into LinkedIn, metadata badges, current job context, and list-mode cache reuse.
 
-![Main usage screenshot](./Screenshot/example.png)
+![Main usage screenshot](./Screenshot/example%20v0.1.1.png)
 
 ### Analysis mode and scoring controls
 
-This shows the new `Analysis mode` section in `v0.1.1`.
+This shows the scoring controls introduced in the recent scoring upgrade.
 
 ![Analysis mode screenshot](./Screenshot/Analysis%20mode.png)
 
-### Analysis preference settings
-
-This shows the main scoring settings area, including the sponsorship requirement toggle.
-
 ![Analysis preference screenshot](./Screenshot/Analysis%20preference%20setting.png)
 
-### Full custom scoring
-
-This shows `Enable full custom scoring`, custom weights, and the full custom prompt input.
-
 ![Full custom scoring screenshot](./Screenshot/full%20custom%20scoring%20setting.png)
+
+### Library: history and saved positions
+
+This shows the new `Library` section with reusable analysis history and saved jobs.
+
+![Library screenshot](./Screenshot/history%20and%20save.png)
+
+### Inserted jobs
+
+This shows the `Jobs from insert` workflow for pasted jobs from non-LinkedIn sources.
+
+![Inserted jobs screenshot](./Screenshot/insert.png)
 
 ### Sponsorship required vs. not required
 
@@ -145,29 +179,15 @@ This shows the detailed per-dimension scoring output.
 
 ![Breakdown screenshot](./Screenshot/breakdown.png)
 
-### Settings page
+### Settings and provider switching
 
-This shows provider setup, model configuration, and general settings.
+These screenshots show provider setup, model configuration, connection testing, and provider-specific settings.
 
 ![Settings screenshot](./Screenshot/settings.png)
 
-### Provider switching
-
-This highlights switching between providers while keeping provider-specific settings.
-
 ![Provider switching screenshot](./Screenshot/provider%20switch.png)
 
-### Connection test
-
-This shows the connection validation flow before running analysis.
-
 ![Test connection screenshot](./Screenshot/Test%20Connection.png)
-
-### Batch analysis progress
-
-This shows list-mode progress feedback while multiple jobs are being processed.
-
-![Batch analysis progress screenshot](./Screenshot/clicking%20analyze%20or%20re-analyze.png)
 
 ### Side panel detail view
 
@@ -225,9 +245,7 @@ Reference:
 
 ![Chrome extension loading procedure screenshot](./Screenshot/chrome%20procedure.png)
 
-### Option B: Install from a GitHub Release asset
-
-If you publish a release zip:
+### Option B: Install from a GitHub release asset
 
 1. download the release archive
 2. extract it
@@ -257,74 +275,15 @@ After opening the side panel:
 10. optionally enable `Full custom scoring`
 11. save settings
 
-## Scoring Logic
-
-### Analysis modes
-
-- `Strict`: more conservative scoring for missing must-haves
-- `Balanced`: normal general-purpose evaluation
-- `Potential`: more credit for transferable upside and growth potential
-- `Sponsorship-first`: sponsorship logic can act as a hard blocker
-
-### Sponsorship logic
-
-If the user marks `I need employer sponsorship`, sponsorship becomes part of the evaluation.
-
-`v0.1.1` uses deterministic sponsorship outcomes:
-
-- recognized sponsor and no explicit JD refusal -> strong positive
-- recognized sponsor but JD explicitly says no sponsorship -> `0` sponsorship fit
-- registry negative but JD suggests sponsorship support -> low score with `Conflicting signals`
-- registry negative and JD also indicates no sponsorship -> `0` sponsorship fit
-
-Only `Sponsorship-first` can hard-block the final score to `0` when sponsorship is clearly incompatible.
-
-## Caching Rules
-
-The cache key now isolates by:
-
-- `jobId`
-- `resumeHash`
-- `scoringProfileHash`
-- `modelKeyHash`
-- `promptVersion`
-
-This prevents stale results from being reused after changes to the resume, provider, scoring mode, custom weights, or custom prompt.
-
-Other cache behavior:
-
-- already analyzed jobs are loaded from history when possible
-- obviously damaged low-quality cached results are filtered out
-- job history older than 30 days is removed automatically
-
 ## Privacy and Data Handling
 
-- resume content is stored locally in extension storage
-- API keys are stored locally in extension storage
-- requests are sent only to the selected model provider
-- sponsor matching uses a local dataset included in the project
+- resume content is stored in local extension storage
+- API keys are stored in local extension storage
+- model requests are only sent to the currently selected provider
+- sponsorship checks use the bundled local sponsor dataset
 
-For dataset notes and attribution, see [DATA_ATTRIBUTION.md](./DATA_ATTRIBUTION.md).
-
-## Publishing Notes
-
-This folder is prepared as a clean GitHub upload set.
-
-It intentionally excludes:
-
-- `node_modules`
-- local log files
-- transient debug files
-- the already-built `dist/` folder
-
-Recommended publication workflow:
-
-1. upload this folder's contents into a GitHub repository
-2. keep the repository as source code only
-3. build locally with `npm run build`
-4. zip `dist/`
-5. upload the zip as a GitHub Release asset
+For data attribution guidance, see [DATA_ATTRIBUTION.md](./DATA_ATTRIBUTION.md).
 
 ## License
 
-This project uses the `MIT` License. See [LICENSE](./LICENSE).
+This project is released under the [MIT License](./LICENSE).

@@ -11,13 +11,16 @@ function buildSummary(jobId, jdData, matchData, cacheContext) {
   const sponsorship = matchData?.sponsorshipAssessment || {};
   const metadata = matchData?.metadata || {};
   const scoringProfile = cacheContext?.scoringProfile || {};
+  const sourceType = jdData?.sourceType === 'inserted' ? 'inserted' : 'linkedin';
 
   return {
     jobId,
+    sourceType,
     title: jdData?.title || '',
     company: jdData?.company || '',
     location: jdData?.location || '',
     url: jdData?.url || '',
+    sourceUrl: jdData?.sourceUrl || jdData?.url || '',
     jdLanguage: metadata.jdLanguage || 'Unknown',
     requiredExperience: metadata.requiredExperience || null,
     requiredLanguages: Array.isArray(metadata.requiredLanguages) ? metadata.requiredLanguages : [],
@@ -90,6 +93,16 @@ export const CacheManager = {
     return entry?.data || null;
   },
 
+  async deleteEntry(jobId, cacheContext) {
+    if (!jobId || !cacheContext?.resumeHash || !cacheContext?.scoringProfileHash || !cacheContext?.modelKeyHash) {
+      return false;
+    }
+
+    const key = buildCacheKey(jobId, cacheContext);
+    await chrome.storage.local.remove(key);
+    return true;
+  },
+
   async getEntries(jobIds, cacheContext) {
     if (!Array.isArray(jobIds) || !jobIds.length || !cacheContext?.resumeHash || !cacheContext?.scoringProfileHash || !cacheContext?.modelKeyHash) {
       return [];
@@ -143,5 +156,47 @@ export const CacheManager = {
     if (keysToRemove.length) {
       await chrome.storage.local.remove(keysToRemove);
     }
+  },
+
+  async listEntries(cacheContext, options = {}) {
+    if (!cacheContext?.resumeHash || !cacheContext?.scoringProfileHash || !cacheContext?.modelKeyHash) {
+      return [];
+    }
+
+    const allStorage = await chrome.storage.local.get(null);
+    const entries = [];
+    const keysToRemove = [];
+    const sourceTypeFilter = options.sourceType || null;
+
+    for (const [key, value] of Object.entries(allStorage)) {
+      if (!key.startsWith(CACHE_PREFIX)) {
+        continue;
+      }
+
+      if (value?.resumeHash !== cacheContext.resumeHash
+        || value?.scoringProfileHash !== cacheContext.scoringProfileHash
+        || value?.modelKeyHash !== cacheContext.modelKeyHash) {
+        continue;
+      }
+
+      if (isExpired(value?.timestamp) || value?.version !== CURRENT_CACHE_VERSION) {
+        keysToRemove.push(key);
+        continue;
+      }
+
+      const entrySourceType = value?.summary?.sourceType || 'linkedin';
+      if (sourceTypeFilter && entrySourceType !== sourceTypeFilter) {
+        continue;
+      }
+
+      entries.push(value);
+    }
+
+    if (keysToRemove.length) {
+      await chrome.storage.local.remove(keysToRemove);
+    }
+
+    entries.sort((a, b) => new Date(b?.summary?.analyzedAt || 0) - new Date(a?.summary?.analyzedAt || 0));
+    return entries;
   },
 };

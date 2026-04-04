@@ -1,4 +1,4 @@
-import {
+﻿import {
   Actions,
   DEFAULT_ANALYSIS_PRESET,
   ItemNames,
@@ -30,6 +30,22 @@ const els = {
   fileRemove: $('#file-remove'),
   resumeStatusBadge: $('#resume-status-badge'),
 
+  manualJobsCard: $('#manual-jobs-card'),
+  manualJobsToggle: $('#manual-jobs-toggle'),
+  manualJobsBody: $('#manual-jobs-body'),
+  manualDetectModeButtons: $$('[data-manual-detect-mode]'),
+  manualRawInput: $('#manual-raw-input'),
+  manualDetectBtn: $('#manual-detect-btn'),
+  manualClearBtn: $('#manual-clear-btn'),
+  manualTitle: $('#manual-title'),
+  manualCompany: $('#manual-company'),
+  manualLocation: $('#manual-location'),
+  manualSourceUrl: $('#manual-source-url'),
+  manualDescription: $('#manual-description'),
+  manualAnalyzeBtn: $('#manual-analyze-btn'),
+  manualSaveHint: $('#manual-save-hint'),
+  manualJobList: $('#manual-job-list'),
+
   jobListCard: $('#job-list-card'),
   jobListSummary: $('#job-list-summary'),
   jobList: $('#job-list'),
@@ -38,6 +54,12 @@ const els = {
   jobDetailPanel: $('#job-detail-panel'),
   jobDetailBack: $('#job-detail-back'),
   jobDetailContent: $('#job-detail-content'),
+  libraryDetailPanel: $('#library-detail-panel'),
+  libraryDetailBack: $('#library-detail-back'),
+  libraryDetailContent: $('#library-detail-content'),
+  manualDetailPanel: $('#manual-detail-panel'),
+  manualDetailBack: $('#manual-detail-back'),
+  manualDetailContent: $('#manual-detail-content'),
 
   analyzeBtn: $('#analyze-btn'),
   batchAnalyzeBtn: $('#batch-analyze-btn'),
@@ -50,6 +72,7 @@ const els = {
   progressText: $('#progress-text'),
   resultsContainer: $('#results-container'),
   resultContext: $('#result-context'),
+  savePositionBtn: $('#save-position-btn'),
 
   scoreValue: $('#score-value'),
   scoreRingFill: $('#score-ring-fill'),
@@ -62,6 +85,14 @@ const els = {
   sponsorshipContent: $('#sponsorship-content'),
   metadataToggle: $('#metadata-toggle'),
   metadataContent: $('#metadata-content'),
+
+  libraryCard: $('#library-card'),
+  libraryToggle: $('#library-toggle'),
+  libraryBody: $('#library-body'),
+  libraryModeButtons: $$('[data-library-mode]'),
+  librarySourceButtons: $$('[data-library-source]'),
+  librarySummary: $('#library-summary'),
+  libraryList: $('#library-list'),
 
   settingProvider: $('#setting-provider'),
   settingBaseUrl: $('#setting-baseurl'),
@@ -101,11 +132,20 @@ let resumeText = null;
 let currentConfig = null;
 let currentListJobs = [];
 let currentListSignature = '';
+let manualJobs = [];
 let visibleJobCount = 10;
 let isAnalyzing = false;
 let scoreMap = new Map();
 let lastAutoAnalyzeSignature = '';
 let currentResultJobId = null;
+let currentManualEditingId = null;
+let currentResultPayload = null;
+let savedPositionsMap = new Map();
+let historyEntries = { linkedin: [], inserted: [] };
+let libraryMode = 'history';
+let librarySource = 'linkedin';
+let manualDetectMode = 'rule';
+let detailViewHost = 'none';
 
 const WEIGHT_FIELD_MAP = Object.freeze({
   [ItemNames.SKILLS]: 'weightSkills',
@@ -122,6 +162,8 @@ async function init() {
   setupTabNavigation();
   setupResumeUpload();
   setupAnalyzeButtons();
+  setupManualJobs();
+  setupLibrary();
   setupSettings();
   setupMetadataToggle();
   setupJobListControls();
@@ -131,6 +173,7 @@ async function init() {
   await loadAndDisplayConfig();
   await loadPersistentResume();
   await refreshPageContext();
+  await refreshPositionLibrary();
 }
 
 function setupTabNavigation() {
@@ -242,10 +285,12 @@ async function handleFileSelected(file) {
 
     scoreMap = new Map();
     currentResultJobId = null;
+    currentResultPayload = null;
     lastAutoAnalyzeSignature = '';
     updateAnalyzeButtons();
     await refreshPageScores();
-    await hydrateJobScores(currentListJobs, { includeCurrentJobResult: true });
+    await hydrateJobScores([...currentListJobs, ...manualJobs], { includeCurrentJobResult: true });
+    await refreshPositionLibrary();
     maybeAutoAnalyzeList();
   } catch (err) {
     showError(`Resume parsing failed: ${err.message}`);
@@ -361,6 +406,9 @@ function setupAnalyzeButtons() {
   els.analyzeBtn.addEventListener('click', () => startAnalysis('single'));
   els.batchAnalyzeBtn.addEventListener('click', () => startAnalysis('batch'));
   els.reanalyzeBtn.addEventListener('click', () => startAnalysis('single', { forceRefresh: true }));
+  els.savePositionBtn.addEventListener('click', () => {
+    toggleSavedPositionFromDataset(els.savePositionBtn.dataset).catch(err => showError(err.message));
+  });
   els.batchReanalyzeBtn.addEventListener('click', () => {
     startAnalysis('batch', {
       jobIds: currentListJobs.slice(0, visibleJobCount).map(job => job.jobId),
@@ -368,6 +416,603 @@ function setupAnalyzeButtons() {
       maxParallel: 3,
     });
   });
+}
+
+function setupManualJobs() {
+  els.manualDetectModeButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      manualDetectMode = button.dataset.manualDetectMode || 'rule';
+      els.manualDetectModeButtons.forEach(item => item.classList.toggle('active', item === button));
+      const hint = manualDetectMode === 'ai'
+        ? 'Model detection uses your configured provider to structure the pasted job.'
+        : 'Rule detection uses fast local extraction and does not call the model.';
+      showManualSaveHint(hint, 'success');
+    });
+  });
+
+  els.manualJobsToggle.addEventListener('click', () => {
+    const willShow = els.manualJobsBody.classList.contains('hidden');
+    els.manualJobsBody.classList.toggle('hidden', !willShow);
+    els.manualJobsToggle.textContent = willShow ? 'Collapse' : 'Expand';
+  });
+
+  els.manualDetectBtn.addEventListener('click', async () => {
+    const rawText = els.manualRawInput.value;
+    if (manualDetectMode === 'rule') {
+      const parsed = parseInsertedJobText(rawText);
+      if (!parsed.title && !parsed.description) {
+        showError('Paste more job content so the plugin can detect the fields.');
+        return;
+      }
+
+      applyDetectedManualFields(parsed);
+      els.manualClearBtn.classList.remove('hidden');
+      showManualSaveHint('Rule detection filled the fields. Review them before analysis.', 'success');
+      return;
+    }
+
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: Actions.DETECT_INSERTED_JOB,
+        payload: { rawText },
+      });
+
+      if (!response?.ok || !response.data) {
+        throw new Error(response?.error || 'Model detection did not return usable fields.');
+      }
+
+      applyDetectedManualFields(response.data);
+      els.manualClearBtn.classList.remove('hidden');
+      const confidence = response.data.confidence ? ` (${response.data.confidence} confidence)` : '';
+      showManualSaveHint(`Model detection filled the fields${confidence}. Review them before analysis.`, 'success');
+    } catch (err) {
+      showError(err.message || 'Model detection failed.');
+    }
+  });
+
+  els.manualClearBtn.addEventListener('click', () => {
+    resetManualJobForm();
+  });
+
+  els.manualAnalyzeBtn.addEventListener('click', () => {
+    saveAndAnalyzeManualJob().catch(err => {
+      showManualSaveHint(err.message || 'Failed to save and analyze the inserted job.', 'error');
+    });
+  });
+
+  els.manualJobList.addEventListener('click', event => {
+    const saveButton = event.target.closest('[data-save-job-id]');
+    if (saveButton) {
+      event.stopPropagation();
+      toggleSavedPositionFromDataset(saveButton.dataset).catch(err => showError(err.message));
+      return;
+    }
+
+    const openButton = event.target.closest('[data-open-job-id]');
+    if (openButton) {
+      event.stopPropagation();
+      openCachedResult(openButton.dataset.openJobId, openButton.dataset.sourceType || 'inserted', 'manual-detail').catch(err => {
+        showError(err.message || 'Unable to open this inserted job.');
+      });
+      return;
+    }
+
+    const actionButton = event.target.closest('[data-manual-action]');
+    if (actionButton) {
+      event.stopPropagation();
+      handleManualJobAction(actionButton.dataset).catch(err => showError(err.message));
+      return;
+    }
+
+    const item = event.target.closest('.job-list-item');
+    if (!item) {
+      return;
+    }
+
+    openCachedResult(item.dataset.jobId, item.dataset.sourceType || 'inserted', 'manual-detail').catch(err => {
+      showError(err.message || 'Unable to open this inserted job.');
+    });
+  });
+
+  els.manualJobList.addEventListener('keydown', event => {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return;
+    }
+
+    const item = event.target.closest('.job-list-item');
+    if (!item) {
+      return;
+    }
+
+    event.preventDefault();
+    openCachedResult(item.dataset.jobId, item.dataset.sourceType || 'inserted', 'manual-detail').catch(err => {
+      showError(err.message || 'Unable to open this inserted job.');
+    });
+  });
+
+  els.manualDetailBack.addEventListener('click', () => {
+    hideManualDetailPanel();
+  });
+}
+
+function setupLibrary() {
+  els.libraryToggle.addEventListener('click', () => {
+    const willShow = els.libraryBody.classList.contains('hidden');
+    els.libraryBody.classList.toggle('hidden', !willShow);
+    els.libraryToggle.textContent = willShow ? 'Collapse' : 'Expand';
+  });
+
+  els.libraryModeButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      libraryMode = button.dataset.libraryMode || 'history';
+      els.libraryModeButtons.forEach(item => item.classList.toggle('active', item === button));
+      renderLibrary();
+    });
+  });
+
+  els.librarySourceButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      librarySource = button.dataset.librarySource || 'linkedin';
+      els.librarySourceButtons.forEach(item => item.classList.toggle('active', item === button));
+      renderLibrary();
+    });
+  });
+
+  els.libraryList.addEventListener('click', event => {
+    const saveButton = event.target.closest('[data-save-job-id]');
+    if (saveButton) {
+      event.stopPropagation();
+      toggleSavedPositionFromDataset(saveButton.dataset).catch(err => showError(err.message));
+      return;
+    }
+
+    const deleteButton = event.target.closest('[data-library-delete-job-id]');
+    if (deleteButton) {
+      event.stopPropagation();
+      handleLibraryDelete(deleteButton.dataset).catch(err => {
+        showError(err.message || 'Unable to delete this item.');
+      });
+      return;
+    }
+
+    const openButton = event.target.closest('[data-open-job-id]');
+    if (openButton) {
+      event.stopPropagation();
+      openLibraryItem({
+        jobId: openButton.dataset.openJobId,
+        sourceType: openButton.dataset.sourceType || librarySource,
+      }).catch(err => {
+        showError(err.message || 'Unable to open this saved item.');
+      });
+      return;
+    }
+
+    const item = event.target.closest('.job-list-item');
+    if (!item) {
+      return;
+    }
+
+    openLibraryItem(item.dataset).catch(err => {
+      showError(err.message || 'Unable to open this saved item.');
+    });
+  });
+
+  els.libraryList.addEventListener('keydown', event => {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return;
+    }
+
+    const item = event.target.closest('.job-list-item');
+    if (!item) {
+      return;
+    }
+
+    event.preventDefault();
+    openLibraryItem(item.dataset).catch(err => {
+      showError(err.message || 'Unable to open this saved item.');
+    });
+  });
+
+  els.libraryDetailBack.addEventListener('click', () => {
+    hideLibraryDetailPanel();
+  });
+}
+
+async function refreshPositionLibrary() {
+  try {
+    const response = await chrome.runtime.sendMessage({ type: Actions.GET_POSITION_LIBRARY });
+    if (!response?.ok) {
+      return;
+    }
+
+    manualJobs = Array.isArray(response.data?.manualJobs) ? response.data.manualJobs : [];
+    historyEntries = response.data?.history || { linkedin: [], inserted: [] };
+    const savedItems = [
+      ...((response.data?.saved?.linkedin) || []),
+      ...((response.data?.saved?.inserted) || []),
+    ];
+    savedPositionsMap = new Map(savedItems.map(item => [buildPositionKey(item.jobId, item.sourceType), item]));
+
+    renderManualJobs();
+    renderLibrary();
+    updateSavePositionButton();
+    await hydrateJobScores([...currentListJobs, ...manualJobs], { includeCurrentJobResult: false });
+  } catch (err) {
+    console.warn('Failed to refresh library:', err);
+  }
+}
+
+function renderManualJobs() {
+  if (!manualJobs.length) {
+    els.manualJobList.innerHTML = '<p class="hint-text">No inserted jobs yet. Paste a job posting above to add one.</p>';
+    return;
+  }
+
+  els.manualJobList.innerHTML = manualJobs.map((job, index) => {
+    const cached = scoreMap.get(job.manualJobId);
+    const score = cached?.score;
+    const isSaved = savedPositionsMap.has(buildPositionKey(job.manualJobId, 'inserted'));
+    const titleBadges = buildJdTitleBadges({
+      jdLanguage: cached?.jdLanguage || null,
+      requiredExperience: cached?.requiredExperience || null,
+      requiredLanguages: cached?.requiredLanguages || [],
+      kmEligible: cached?.kmEligible === true,
+    });
+
+    return `
+      <div class="job-list-item${isSaved ? ' saved-item' : ''}" data-job-id="${escapeHtml(job.manualJobId)}" data-source-type="inserted" role="button" tabindex="0">
+        <div class="job-row-top">
+          <div>
+            <div class="job-index">#${index + 1} <span class="job-source-pill">Inserted</span></div>
+            <div class="job-title">${escapeHtml(job.title || 'Untitled inserted job')}${titleBadges}</div>
+          </div>
+          <div class="job-item-actions">
+            ${typeof score === 'number'
+              ? buildSaveStarButton(job.manualJobId, 'inserted', isSaved)
+              : ''}
+            ${typeof score === 'number'
+              ? `<span class="job-score ${getScoreClass(score)}">${Math.round(score)}%</span>`
+              : '<span class="status-badge">New</span>'}
+          </div>
+        </div>
+        <div class="job-company">${escapeHtml(job.company || 'Manual entry')}</div>
+        <div class="job-state">${escapeHtml(job.lastAnalyzedAt ? `Analyzed ${formatTimestamp(job.lastAnalyzedAt)}` : 'Not analyzed yet')}</div>
+        <div class="inline-actions">
+          <button class="btn-secondary" data-open-job-id="${escapeHtml(job.manualJobId)}" data-source-type="inserted" type="button">View details</button>
+          <button class="btn-secondary" data-manual-action="edit" data-manual-job-id="${escapeHtml(job.manualJobId)}" type="button">Edit</button>
+          <button class="btn-secondary" data-manual-action="analyze" data-manual-job-id="${escapeHtml(job.manualJobId)}" type="button">${typeof score === 'number' ? 'Re-analyze' : 'Analyze'}</button>
+          <button class="btn-secondary" data-manual-action="delete" data-manual-job-id="${escapeHtml(job.manualJobId)}" type="button">Delete</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderLibrary() {
+  const sourceItems = (historyEntries?.[librarySource] && libraryMode === 'history')
+    ? historyEntries[librarySource]
+    : (libraryMode === 'saved'
+      ? [...savedPositionsMap.values()].filter(item => (item.sourceType || 'linkedin') === librarySource)
+      : []);
+
+  if (!sourceItems.length) {
+    els.librarySummary.textContent = libraryMode === 'saved'
+      ? `No saved ${librarySource} positions yet.`
+      : `No ${librarySource} history yet for the current resume.`;
+    els.libraryList.innerHTML = '<p class="hint-text">Nothing to show here yet.</p>';
+    return;
+  }
+
+  els.librarySummary.textContent = libraryMode === 'saved'
+    ? `${sourceItems.length} saved ${librarySource} positions.`
+    : `${sourceItems.length} analyzed ${librarySource} jobs for the current resume.`;
+
+  els.libraryList.innerHTML = sourceItems.map((item, index) => {
+    const score = item.score;
+    const isSaved = savedPositionsMap.has(buildPositionKey(item.jobId, item.sourceType || librarySource));
+    const titleBadges = buildJdTitleBadges({
+      jdLanguage: item.jdLanguage || item.result?.metadata?.jdLanguage || null,
+      requiredExperience: item.requiredExperience || item.result?.metadata?.requiredExperience || null,
+      requiredLanguages: item.requiredLanguages || item.result?.metadata?.requiredLanguages || [],
+      kmEligible: item.kmEligible === true || item.result?.sponsorshipAssessment?.kmEligible === true,
+    });
+
+    return `
+      <div class="job-list-item${isSaved ? ' saved-item' : ''}" data-job-id="${escapeHtml(item.jobId)}" data-source-type="${escapeHtml(item.sourceType || librarySource)}" role="button" tabindex="0">
+        <div class="job-row-top">
+          <div>
+            <div class="job-index">#${index + 1} <span class="job-source-pill">${escapeHtml((item.sourceType || librarySource) === 'inserted' ? 'Inserted' : 'LinkedIn')}</span></div>
+            <div class="job-title">${escapeHtml(item.title || 'Untitled job')}${titleBadges}</div>
+          </div>
+          <div class="job-item-actions">
+            ${(typeof score === 'number' || libraryMode === 'saved')
+              ? buildSaveStarButton(item.jobId, item.sourceType || librarySource, isSaved)
+              : ''}
+            ${typeof score === 'number'
+              ? `<span class="job-score ${getScoreClass(score)}">${Math.round(score)}%</span>`
+              : '<span class="status-badge">Info</span>'}
+          </div>
+        </div>
+        <div class="job-company">${escapeHtml(item.company || 'Unknown company')}</div>
+        <div class="job-state">${escapeHtml(buildLibraryStateText(item))}</div>
+        <div class="inline-actions">
+          <button class="btn-secondary" data-open-job-id="${escapeHtml(item.jobId)}" data-source-type="${escapeHtml(item.sourceType || librarySource)}" type="button">View details</button>
+          <button class="btn-secondary" data-library-delete-job-id="${escapeHtml(item.jobId)}" data-source-type="${escapeHtml(item.sourceType || librarySource)}" data-library-delete-mode="${escapeHtml(libraryMode)}" type="button">${libraryMode === 'saved' ? 'Remove' : 'Delete'}</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function buildLibraryStateText(item) {
+  if (libraryMode === 'saved') {
+    return item.savedAt ? `Saved on ${formatTimestamp(item.savedAt)}` : 'Saved position';
+  }
+  return item.analyzedAt ? `Analyzed on ${formatTimestamp(item.analyzedAt)}` : 'History item';
+}
+
+async function handleLibraryDelete(dataset) {
+  const jobId = dataset.libraryDeleteJobId;
+  const sourceType = dataset.sourceType || librarySource;
+  const mode = dataset.libraryDeleteMode || libraryMode;
+  if (!jobId) {
+    return;
+  }
+
+  const actionType = mode === 'saved' ? Actions.DELETE_SAVED_POSITION : Actions.DELETE_HISTORY_ENTRY;
+  const response = await chrome.runtime.sendMessage({
+    type: actionType,
+    payload: { jobId, sourceType },
+  });
+
+  if (!response?.ok) {
+    throw new Error(response?.error || 'Failed to delete this item.');
+  }
+
+  if (detailViewHost === 'library' && currentResultJobId === jobId) {
+    hideLibraryDetailPanel();
+  }
+
+  if (mode === 'history') {
+    scoreMap.delete(jobId);
+    if (currentResultPayload?.jobId === jobId && currentResultPayload?.sourceType === sourceType) {
+      currentResultPayload = null;
+      currentResultJobId = null;
+      els.resultsContainer.classList.add('hidden');
+    }
+    renderJobList();
+    renderManualJobs();
+  }
+
+  await refreshPositionLibrary();
+}
+
+function parseInsertedJobText(rawText = '') {
+  const text = (rawText || '').trim();
+  if (!text) {
+    return { title: '', company: '', location: '', description: '', sourceUrl: '' };
+  }
+
+  const lines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+  const firstLongBlock = lines.find(line => line.length > 30) || '';
+  const sourceUrl = (text.match(/https?:\/\/[^\s)]+/i) || [])[0] || '';
+  const titleLine = extractLabelValue(lines, ['job title', 'title', 'position']) || lines[0] || '';
+  const companyLine = extractLabelValue(lines, ['company', 'employer']) || inferCompanyLine(lines);
+  const locationLine = extractLabelValue(lines, ['location', 'based in']) || inferLocationLine(lines);
+  const description = extractDescriptionBlock(text, lines, titleLine, companyLine, locationLine) || firstLongBlock || text;
+
+  return {
+    title: titleLine,
+    company: companyLine,
+    location: locationLine,
+    description,
+    sourceUrl,
+  };
+}
+
+function extractLabelValue(lines, labels) {
+  for (const line of lines) {
+    const lower = line.toLowerCase();
+    for (const label of labels) {
+      if (lower.startsWith(`${label}:`)) {
+        return line.slice(label.length + 1).trim();
+      }
+    }
+  }
+  return '';
+}
+
+function inferCompanyLine(lines) {
+  return lines.slice(1, 5).find(line => line.length < 80 && !/[.:]/.test(line) && !looksLikeLocation(line)) || '';
+}
+
+function inferLocationLine(lines) {
+  return lines.find(line => looksLikeLocation(line)) || '';
+}
+
+function looksLikeLocation(line = '') {
+  return /,\s*[A-Za-z]/.test(line) || /\b(remote|hybrid|onsite|on-site)\b/i.test(line);
+}
+
+function extractDescriptionBlock(rawText, lines, title, company, location) {
+  const markers = ['about the job', 'job description', 'about this role', 'role overview', 'description'];
+  const lower = rawText.toLowerCase();
+  for (const marker of markers) {
+    const index = lower.indexOf(marker);
+    if (index >= 0) {
+      return rawText.slice(index).trim();
+    }
+  }
+
+  return lines
+    .filter(line => ![title, company, location].includes(line))
+    .join('\n')
+    .trim();
+}
+
+async function saveAndAnalyzeManualJob() {
+  const payload = {
+    manualJobId: currentManualEditingId,
+    title: els.manualTitle.value.trim(),
+    company: els.manualCompany.value.trim(),
+    location: els.manualLocation.value.trim(),
+    description: els.manualDescription.value.trim(),
+    sourceUrl: els.manualSourceUrl.value.trim(),
+    rawInput: els.manualRawInput.value.trim(),
+  };
+
+  if (!payload.title || !payload.description) {
+    throw new Error('Inserted jobs need at least a title and a description.');
+  }
+
+  const saveResponse = await chrome.runtime.sendMessage({
+    type: Actions.UPSERT_MANUAL_JOB,
+    payload,
+  });
+
+  if (!saveResponse?.ok) {
+    throw new Error(saveResponse?.error || 'Failed to save inserted job.');
+  }
+
+  currentManualEditingId = saveResponse.data.manualJobId;
+  showManualSaveHint('Inserted job saved. Starting analysis...', 'success');
+  await refreshPositionLibrary();
+
+  await startManualAnalysis(saveResponse.data.manualJobId);
+}
+
+async function startManualAnalysis(manualJobId, forceRefresh = false) {
+  if (isAnalyzing || !resumeText) {
+    return;
+  }
+
+  isAnalyzing = true;
+  updateAnalyzeButtons();
+  els.progressContainer.classList.remove('hidden');
+  els.resultsContainer.classList.add('hidden');
+  const originalText = els.manualAnalyzeBtn.textContent;
+  els.manualAnalyzeBtn.textContent = 'Analyzing inserted job...';
+  els.manualAnalyzeBtn.classList.add('analyzing');
+
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: Actions.START_MANUAL_ANALYSIS,
+      payload: { manualJobId, forceRefresh },
+    });
+
+    if (!response?.ok) {
+      throw new Error(response?.error || 'Failed to analyze the inserted job.');
+    }
+  } catch (err) {
+    showError(err.message);
+    resetAnalyzeButtons(els.manualAnalyzeBtn, originalText);
+  }
+}
+
+function showManualSaveHint(text, type) {
+  els.manualSaveHint.textContent = text;
+  els.manualSaveHint.className = `save-hint ${type}`;
+}
+
+function resetManualJobForm() {
+  currentManualEditingId = null;
+  els.manualRawInput.value = '';
+  els.manualTitle.value = '';
+  els.manualCompany.value = '';
+  els.manualLocation.value = '';
+  els.manualSourceUrl.value = '';
+  els.manualDescription.value = '';
+  els.manualClearBtn.classList.add('hidden');
+  showManualSaveHint('', '');
+}
+
+function applyDetectedManualFields(parsed = {}) {
+  els.manualTitle.value = parsed.title || els.manualTitle.value;
+  els.manualCompany.value = parsed.company || els.manualCompany.value;
+  els.manualLocation.value = parsed.location || els.manualLocation.value;
+  els.manualSourceUrl.value = parsed.sourceUrl || els.manualSourceUrl.value;
+  els.manualDescription.value = parsed.description || els.manualDescription.value;
+}
+
+async function handleManualJobAction(dataset) {
+  const manualJobId = dataset.manualJobId;
+  if (!manualJobId) {
+    return;
+  }
+
+  if (dataset.manualAction === 'edit') {
+    const job = manualJobs.find(item => item.manualJobId === manualJobId);
+    if (!job) {
+      return;
+    }
+    currentManualEditingId = manualJobId;
+    els.manualJobsBody.classList.remove('hidden');
+    els.manualJobsToggle.textContent = 'Collapse';
+    els.manualRawInput.value = job.rawInput || '';
+    els.manualTitle.value = job.title || '';
+    els.manualCompany.value = job.company || '';
+    els.manualLocation.value = job.location || '';
+    els.manualSourceUrl.value = job.sourceUrl || '';
+    els.manualDescription.value = job.description || '';
+    els.manualClearBtn.classList.remove('hidden');
+    showManualSaveHint('Editing inserted job. Update the fields and analyze again when ready.', 'success');
+    return;
+  }
+
+  if (dataset.manualAction === 'delete') {
+    await chrome.runtime.sendMessage({
+      type: Actions.DELETE_MANUAL_JOB,
+      payload: { manualJobId },
+    });
+    if (currentManualEditingId === manualJobId) {
+      resetManualJobForm();
+    }
+    await refreshPositionLibrary();
+    return;
+  }
+
+  if (dataset.manualAction === 'analyze') {
+    await startManualAnalysis(manualJobId, true);
+  }
+}
+
+async function toggleSavedPositionFromDataset(dataset) {
+  const jobId = dataset.saveJobId || dataset.jobId;
+  const sourceType = dataset.sourceType || 'linkedin';
+  const payload = buildSavePayload(jobId, sourceType);
+  const response = await chrome.runtime.sendMessage({
+    type: Actions.TOGGLE_SAVE_POSITION,
+    payload,
+  });
+
+  if (!response?.ok) {
+    throw new Error(response?.error || 'Failed to update saved positions.');
+  }
+
+  await refreshPositionLibrary();
+}
+
+function buildSavePayload(jobId, sourceType = 'linkedin') {
+  const cached = scoreMap.get(jobId);
+  const isInserted = sourceType === 'inserted';
+  const manualJob = isInserted ? manualJobs.find(job => job.manualJobId === jobId) : null;
+  const result = currentResultPayload?.jobId === jobId ? currentResultPayload : (cached?.result || null);
+
+  return {
+    jobId,
+    sourceType,
+    title: cached?.title || manualJob?.title || currentJDData?.title || result?.jobTitle || '',
+    company: cached?.company || manualJob?.company || currentJDData?.company || result?.company || '',
+    location: cached?.location || manualJob?.location || currentJDData?.location || result?.location || '',
+    url: cached?.url || manualJob?.sourceUrl || currentJDData?.url || result?.jobUrl || '',
+    sourceUrl: cached?.sourceUrl || manualJob?.sourceUrl || result?.sourceUrl || '',
+    lastResult: result,
+    summary: cached || null,
+  };
+}
+
+function buildPositionKey(jobId, sourceType = 'linkedin') {
+  return `${sourceType}:${jobId}`;
 }
 
 function setupJobListControls() {
@@ -382,6 +1027,13 @@ function setupJobListControls() {
   });
 
   els.jobList.addEventListener('click', event => {
+    const saveButton = event.target.closest('[data-save-job-id]');
+    if (saveButton) {
+      event.stopPropagation();
+      toggleSavedPositionFromDataset(saveButton.dataset).catch(err => showError(err.message));
+      return;
+    }
+
     const item = event.target.closest('.job-list-item');
     if (!item) {
       return;
@@ -630,6 +1282,8 @@ function renderNoPageState() {
   currentJDData = null;
   currentListJobs = [];
   currentListSignature = '';
+  hideLibraryDetailPanel();
+  hideManualDetailPanel();
   els.jdStatusBadge.textContent = 'Waiting';
   els.jdStatusBadge.className = 'status-badge';
   els.jdInfo.innerHTML = '<p class="hint-text">Open a LinkedIn job page to load job data.</p>';
@@ -713,6 +1367,8 @@ async function hydrateJobScores(jobs, options = {}) {
   if (!jobIds.length) {
     scoreMap = new Map();
     renderJobList();
+    renderManualJobs();
+    renderLibrary();
     return;
   }
 
@@ -730,11 +1386,15 @@ async function hydrateJobScores(jobs, options = {}) {
       scoreMap = new Map();
       els.cachedResultHint.classList.add('hidden');
       renderJobList();
+      renderManualJobs();
+      renderLibrary();
       return;
     }
 
     scoreMap = new Map((response.entries || []).map(entry => [entry.jobId, entry]));
     renderJobList();
+    renderManualJobs();
+    renderLibrary();
 
     if (options.includeCurrentJobResult && currentJDData?.jobId) {
       const cachedCurrent = scoreMap.get(currentJDData.jobId);
@@ -778,6 +1438,7 @@ function renderJobList() {
     const cached = scoreMap.get(job.jobId);
     const score = cached?.score;
     const scoreClass = typeof score === 'number' ? getScoreClass(score) : 'pending';
+    const isSaved = savedPositionsMap.has(buildPositionKey(job.jobId, 'linkedin'));
     const stateText = cached
       ? `Cached on ${formatTimestamp(cached.analyzedAt)}`
       : 'Not analyzed for this resume yet';
@@ -791,15 +1452,20 @@ function renderJobList() {
     });
 
     return `
-      <div class="job-list-item${isSelected ? ' active-view' : ''}" data-job-id="${escapeHtml(job.jobId)}" role="button" tabindex="0" aria-label="Open analysis for ${escapeHtml(job.title || 'Unknown title')}">
+      <div class="job-list-item${isSelected ? ' active-view' : ''}${isSaved ? ' saved-item' : ''}" data-job-id="${escapeHtml(job.jobId)}" data-source-type="linkedin" role="button" tabindex="0" aria-label="Open analysis for ${escapeHtml(job.title || 'Unknown title')}">
         <div class="job-row-top">
           <div>
-            <div class="job-index">#${index + 1}${isCurrent ? ' - current' : ''}</div>
+            <div class="job-index">#${index + 1}${isCurrent ? ' - current' : ''} <span class="job-source-pill">LinkedIn</span></div>
             <div class="job-title">${escapeHtml(job.title || 'Unknown title')}${titleBadges}</div>
           </div>
-          ${typeof score === 'number'
-            ? `<span class="job-score ${scoreClass}">${Math.round(score)}%</span>`
-            : '<span class="status-badge">New</span>'}
+          <div class="job-item-actions">
+            ${typeof score === 'number'
+              ? buildSaveStarButton(job.jobId, 'linkedin', isSaved)
+              : ''}
+            ${typeof score === 'number'
+              ? `<span class="job-score ${scoreClass}">${Math.round(score)}%</span>`
+              : '<span class="status-badge">New</span>'}
+          </div>
         </div>
         <div class="job-company">${escapeHtml(job.company || 'Unknown company')}</div>
         <div class="job-state">${escapeHtml(stateText)}</div>
@@ -843,6 +1509,7 @@ function updateAnalyzeButtons() {
   const hasSingleJD = !!currentJDData?.description;
   els.analyzeBtn.disabled = !resumeText || isAnalyzing || !hasSingleJD;
   els.batchAnalyzeBtn.disabled = !resumeText || isAnalyzing || !currentListJobs.length;
+  els.manualAnalyzeBtn.disabled = !resumeText || isAnalyzing;
   els.reanalyzeBtn.classList.toggle('hidden', !currentJDData?.jobId || !scoreMap.has(currentJDData.jobId));
   els.reanalyzeBtn.disabled = isAnalyzing || !currentJDData?.jobId;
   els.batchReanalyzeBtn.disabled = isAnalyzing || shownJobsWithCache().length === 0;
@@ -890,6 +1557,8 @@ function resetAnalyzeButtons(targetButton = null, originalText = '') {
     els.batchAnalyzeBtn.textContent = 'Analyze job list';
     els.analyzeBtn.classList.remove('analyzing');
     els.batchAnalyzeBtn.classList.remove('analyzing');
+    els.manualAnalyzeBtn.textContent = 'Save and analyze inserted job';
+    els.manualAnalyzeBtn.classList.remove('analyzing');
   }
   updateAnalyzeButtons();
 }
@@ -907,10 +1576,12 @@ function handleProgress({ stage, message }) {
 
 function handleResult(result) {
   currentResultJobId = result?.jobId || currentResultJobId;
+  currentResultPayload = result || null;
 
   if (typeof result?.overallMatchPercent === 'number' && result.jobId) {
     scoreMap.set(result.jobId, {
       jobId: result.jobId,
+      sourceType: result.sourceType || 'linkedin',
       score: result.overallMatchPercent,
       analyzedAt: result.cachedAt || result.metadata?.analysisTimestamp || new Date().toISOString(),
       title: result.jobTitle || result.title || '',
@@ -927,6 +1598,8 @@ function handleResult(result) {
       result,
     });
     renderJobList();
+    renderManualJobs();
+    renderLibrary();
   }
 
   els.progressFill.style.width = '100%';
@@ -934,13 +1607,26 @@ function handleResult(result) {
 
   window.setTimeout(() => {
     els.progressContainer.classList.add('hidden');
-    els.resultsContainer.classList.remove('hidden');
     resetAnalyzeButtons();
-    renderResult(result);
+    if (detailViewHost === 'list' && result?.sourceType !== 'inserted' && currentResultJobId === result?.jobId) {
+      renderListDetailPanel(result);
+    } else if (detailViewHost === 'manual' && result?.sourceType === 'inserted' && currentResultJobId === result?.jobId) {
+      renderManualDetailPanel(result);
+    } else if (detailViewHost === 'library' && currentResultJobId === result?.jobId) {
+      renderLibraryDetailPanel(result);
+    } else {
+      els.resultsContainer.classList.remove('hidden');
+      renderResult(result);
+    }
+    refreshPositionLibrary().catch(err => console.warn('Failed to refresh library after result:', err));
   }, 250);
 }
 
 function renderResult(result) {
+  hideJobDetailPanel();
+  hideLibraryDetailPanel();
+  hideManualDetailPanel();
+  detailViewHost = 'none';
   renderScoreRing(result.overallMatchPercent);
   renderScoreStatus(result);
   renderScoreMeta(result);
@@ -970,6 +1656,7 @@ function renderResult(result) {
     els.cachedResultHint.classList.add('hidden');
   }
 
+  updateSavePositionButton();
   updateAnalyzeButtons();
 }
 
@@ -1061,12 +1748,7 @@ function renderBreakdown(breakdown) {
       </div>
     `;
   }).join('');
-
-  $$('.breakdown-item').forEach(item => {
-    item.addEventListener('click', () => {
-      item.classList.toggle('expanded');
-    });
-  });
+  bindBreakdownExpand(els.breakdownList);
 }
 
 function renderDetailList(title, items = []) {
@@ -1082,6 +1764,18 @@ function renderDetailList(title, items = []) {
       </ul>
     </div>
   `;
+}
+
+function bindBreakdownExpand(container) {
+  if (!container) {
+    return;
+  }
+
+  container.querySelectorAll('.breakdown-item').forEach(item => {
+    item.addEventListener('click', () => {
+      item.classList.toggle('expanded');
+    });
+  });
 }
 
 function renderInsights(strengths, gaps) {
@@ -1200,6 +1894,139 @@ async function openJobFromList(jobId) {
   scheduleRefreshPageContext();
 }
 
+async function openCachedResult(jobId, sourceType = 'linkedin', displayMode = 'results') {
+  if (!jobId) {
+    return;
+  }
+
+  currentResultJobId = jobId;
+  renderJobList();
+  renderManualJobs();
+  renderLibrary();
+
+  let entry = scoreMap.get(jobId) || null;
+  if (!entry?.result && resumeText) {
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: Actions.GET_CACHED_SCORES,
+        payload: { jobIds: [jobId], includeResult: true },
+      });
+      const hydrated = response?.entries?.[0];
+      if (hydrated) {
+        entry = {
+          ...entry,
+          ...hydrated,
+          result: hydrated.result || entry?.result,
+        };
+        scoreMap.set(jobId, entry);
+      }
+    } catch {
+      // Ignore hydration failures.
+    }
+  }
+
+  if (entry?.result) {
+    const hydratedResult = {
+      ...entry.result,
+      jobId: entry.jobId,
+      sourceType: sourceType || entry.sourceType || 'linkedin',
+      jobTitle: entry.title,
+      company: entry.company,
+      location: entry.location,
+      jobUrl: entry.url,
+      sourceUrl: entry.sourceUrl || entry.url,
+      fromCache: true,
+      cachedAt: entry.analyzedAt,
+      metadata: {
+        ...(entry.result.metadata || {}),
+        jdLanguage: entry.jdLanguage || entry.result.metadata?.jdLanguage || 'Unknown',
+        requiredExperience: entry.requiredExperience || entry.result.metadata?.requiredExperience || null,
+        requiredLanguages: entry.requiredLanguages || entry.result.metadata?.requiredLanguages || [],
+      },
+    };
+
+    if (displayMode === 'list-detail') {
+      renderListDetailPanel(hydratedResult);
+    } else if (displayMode === 'manual-detail') {
+      renderManualDetailPanel(hydratedResult);
+    } else if (displayMode === 'library-detail') {
+      renderLibraryDetailPanel(hydratedResult);
+    } else {
+      hideJobDetailPanel();
+      hideLibraryDetailPanel();
+      hideManualDetailPanel();
+      els.resultsContainer.classList.remove('hidden');
+      renderResult(hydratedResult);
+    }
+    return;
+  }
+
+  if (sourceType === 'inserted') {
+    const manualJob = manualJobs.find(job => job.manualJobId === jobId);
+    if (manualJob) {
+      currentManualEditingId = manualJob.manualJobId;
+      els.manualJobsBody.classList.remove('hidden');
+      els.manualJobsToggle.textContent = 'Collapse';
+      els.manualRawInput.value = manualJob.rawInput || '';
+      els.manualTitle.value = manualJob.title || '';
+      els.manualCompany.value = manualJob.company || '';
+      els.manualLocation.value = manualJob.location || '';
+      els.manualSourceUrl.value = manualJob.sourceUrl || '';
+      els.manualDescription.value = manualJob.description || '';
+      showManualSaveHint('This inserted job has not been analyzed yet. Review the fields and run analysis.', 'success');
+    }
+    return;
+  }
+
+  throw new Error('No cached result is available for this job yet.');
+}
+
+async function openLibraryItem(dataset) {
+  const sourceType = dataset.sourceType || librarySource;
+  const jobId = dataset.jobId;
+  if (!jobId) {
+    return;
+  }
+
+  if (libraryMode === 'saved') {
+    const saved = savedPositionsMap.get(buildPositionKey(jobId, sourceType));
+    if (saved?.result) {
+      renderLibraryDetailPanel({
+        ...saved.result,
+        jobId,
+        sourceType,
+        jobTitle: saved.title,
+        company: saved.company,
+        location: saved.location,
+        jobUrl: saved.url,
+        sourceUrl: saved.sourceUrl || saved.url,
+        fromCache: true,
+        cachedAt: saved.updatedAt || saved.savedAt,
+      });
+      return;
+    }
+  }
+
+  await openCachedResult(jobId, sourceType, 'library-detail');
+}
+
+function updateSavePositionButton() {
+  if (!currentResultPayload?.jobId) {
+    els.savePositionBtn.classList.add('hidden');
+    return;
+  }
+
+  const sourceType = currentResultPayload.sourceType || 'linkedin';
+  const isSaved = savedPositionsMap.has(buildPositionKey(currentResultPayload.jobId, sourceType));
+  els.savePositionBtn.classList.remove('hidden');
+  els.savePositionBtn.classList.toggle('active', isSaved);
+  els.savePositionBtn.textContent = isSaved ? '★' : '☆';
+  els.savePositionBtn.title = isSaved ? 'Remove from saved positions' : 'Save position';
+  els.savePositionBtn.setAttribute('aria-label', els.savePositionBtn.title);
+  els.savePositionBtn.dataset.jobId = currentResultPayload.jobId;
+  els.savePositionBtn.dataset.sourceType = sourceType;
+}
+
 function renderMetadata(meta) {
   const rows = [
     ['Analysis time', meta.analysisTimestamp || 'N/A'],
@@ -1227,17 +2054,80 @@ function renderMetadata(meta) {
 
 function renderListDetailPanel(result) {
   currentResultJobId = result?.jobId || currentResultJobId;
+  currentResultPayload = result || null;
+  detailViewHost = 'list';
   renderJobList();
+  renderManualJobs();
+  renderLibrary();
+  hideLibraryDetailPanel();
+  hideManualDetailPanel();
   els.resultsContainer.classList.add('hidden');
   els.jobListCard.classList.add('detail-open');
   els.jobDetailPanel.classList.remove('hidden');
   els.jobDetailContent.innerHTML = buildListDetailHtml(result);
+  bindBreakdownExpand(els.jobDetailContent);
+  updateSavePositionButton();
 }
 
 function hideJobDetailPanel() {
   els.jobListCard.classList.remove('detail-open');
   els.jobDetailPanel.classList.add('hidden');
   els.jobDetailContent.innerHTML = '';
+  if (detailViewHost === 'list') {
+    detailViewHost = 'none';
+  }
+}
+
+function renderLibraryDetailPanel(result) {
+  currentResultJobId = result?.jobId || currentResultJobId;
+  currentResultPayload = result || null;
+  detailViewHost = 'library';
+  renderJobList();
+  renderManualJobs();
+  renderLibrary();
+  hideJobDetailPanel();
+  hideManualDetailPanel();
+  els.resultsContainer.classList.add('hidden');
+  els.libraryCard.classList.add('detail-open');
+  els.libraryDetailPanel.classList.remove('hidden');
+  els.libraryDetailContent.innerHTML = buildListDetailHtml(result);
+  bindBreakdownExpand(els.libraryDetailContent);
+  updateSavePositionButton();
+}
+
+function hideLibraryDetailPanel() {
+  els.libraryCard.classList.remove('detail-open');
+  els.libraryDetailPanel.classList.add('hidden');
+  els.libraryDetailContent.innerHTML = '';
+  if (detailViewHost === 'library') {
+    detailViewHost = 'none';
+  }
+}
+
+function renderManualDetailPanel(result) {
+  currentResultJobId = result?.jobId || currentResultJobId;
+  currentResultPayload = result || null;
+  detailViewHost = 'manual';
+  renderJobList();
+  renderManualJobs();
+  renderLibrary();
+  hideJobDetailPanel();
+  hideLibraryDetailPanel();
+  els.resultsContainer.classList.add('hidden');
+  els.manualJobsCard.classList.add('detail-open');
+  els.manualDetailPanel.classList.remove('hidden');
+  els.manualDetailContent.innerHTML = buildListDetailHtml(result);
+  bindBreakdownExpand(els.manualDetailContent);
+  updateSavePositionButton();
+}
+
+function hideManualDetailPanel() {
+  els.manualJobsCard.classList.remove('detail-open');
+  els.manualDetailPanel.classList.add('hidden');
+  els.manualDetailContent.innerHTML = '';
+  if (detailViewHost === 'manual') {
+    detailViewHost = 'none';
+  }
 }
 
 function buildListDetailHtml(result) {
@@ -1444,7 +2334,7 @@ function isUnsupportedSponsorship(assessment) {
   }
 
   const conclusion = assessment.conclusion || '';
-  if (conclusion.includes('暂不支持') || conclusion.toLowerCase().includes('unsupported')) {
+  if (conclusion.includes('鏆備笉鏀寔') || conclusion.toLowerCase().includes('unsupported')) {
     return true;
   }
 
@@ -1603,8 +2493,8 @@ function detectJdLanguageLabel(description = '', title = '') {
   const scores = [
     { label: 'English', score: countLanguageHits(normalized, [' the ', ' and ', ' with ', ' for ', ' experience ', ' role ', ' responsibilities ']) },
     { label: 'Dutch', score: countLanguageHits(normalized, [' de ', ' het ', ' een ', ' en ', ' van ', ' voor ', ' met ', ' ervaring ']) },
-    { label: 'German', score: countLanguageHits(normalized, [' der ', ' die ', ' das ', ' und ', ' mit ', ' für ', ' erfahrung ', ' aufgaben ']) },
-    { label: 'French', score: countLanguageHits(normalized, [' le ', ' la ', ' les ', ' des ', ' pour ', ' avec ', ' expérience ']) },
+    { label: 'German', score: countLanguageHits(normalized, [' der ', ' die ', ' das ', ' und ', ' mit ', ' f眉r ', ' erfahrung ', ' aufgaben ']) },
+    { label: 'French', score: countLanguageHits(normalized, [' le ', ' la ', ' les ', ' des ', ' pour ', ' avec ', ' exp茅rience ']) },
     { label: 'Spanish', score: countLanguageHits(normalized, [' el ', ' la ', ' los ', ' para ', ' con ', ' experiencia ', ' responsabilidades ']) },
   ];
 
@@ -1661,10 +2551,10 @@ function detectRequiredLanguages(description = '', title = '') {
     { label: 'English', patterns: [/\benglish\b/, /\bfluent in english\b/, /\bprofessional english\b/] },
     { label: 'Dutch', patterns: [/\bdutch\b/, /\bnederlands\b/] },
     { label: 'German', patterns: [/\bgerman\b/, /\bdeutsch\b/] },
-    { label: 'French', patterns: [/\bfrench\b/, /\bfrancais\b/, /\bfrançais\b/] },
-    { label: 'Spanish', patterns: [/\bspanish\b/, /\bespanol\b/, /\bespañol\b/] },
+    { label: 'French', patterns: [/\bfrench\b/, /\bfrancais\b/, /\bfran莽ais\b/] },
+    { label: 'Spanish', patterns: [/\bspanish\b/, /\bespanol\b/, /\bespa帽ol\b/] },
     { label: 'Italian', patterns: [/\bitalian\b/, /\bitaliano\b/] },
-    { label: 'Portuguese', patterns: [/\bportuguese\b/, /\bportugues\b/, /\bportuguês\b/] },
+    { label: 'Portuguese', patterns: [/\bportuguese\b/, /\bportugues\b/, /\bportugu锚s\b/] },
     { label: 'Chinese', patterns: [/\bchinese\b/, /\bmandarin\b/, /\bcantonese\b/] },
     { label: 'Japanese', patterns: [/\bjapanese\b/] },
   ];
@@ -1700,6 +2590,11 @@ function buildJdTitleBadges({ jdLanguage, requiredExperience, requiredLanguages,
   }
 
   return badges.length ? ` ${badges.join('')}` : '';
+}
+
+function buildSaveStarButton(jobId, sourceType, isSaved) {
+  const label = isSaved ? 'Remove from saved positions' : 'Save position';
+  return `<button class="star-btn${isSaved ? ' active' : ''}" data-save-job-id="${escapeHtml(jobId)}" data-source-type="${escapeHtml(sourceType || 'linkedin')}" type="button" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}">${isSaved ? '★' : '☆'}</button>`;
 }
 
 function buildResultTitleSuffix(result) {
@@ -2079,3 +2974,4 @@ function debounce(fn, delay) {
 const scheduleRefreshPageContext = debounce(() => {
   refreshPageContext().catch(err => console.warn('Failed to refresh page context:', err));
 }, 500);
+

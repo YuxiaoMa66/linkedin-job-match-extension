@@ -2,48 +2,55 @@
 
 # LinkedIn Job Match
 
-`LinkedIn Job Match` 是一个基于 Chrome Manifest V3 的浏览器扩展，用来比较简历与 LinkedIn 岗位描述之间的匹配度，并把结构化结果和荷兰 sponsorship 信号直接显示在 LinkedIn 页面里。
+`LinkedIn Job Match` 是一个基于 Chrome Manifest V3 的浏览器扩展，用来更快地筛选 LinkedIn 岗位，也支持把其他来源的岗位手动粘贴进来分析。它会比较简历和岗位描述的匹配度，在 LinkedIn 页面内直接展示分数和标签，并基于本地 IND 衍生数据给出荷兰 sponsorship / KM 相关信号。
 
 当前版本信息：
 
 - 扩展名称：`LinkedIn Job Match`
-- 当前 manifest 版本：`0.1.1`
+- 当前 manifest 版本：`0.1.2`
 - 技术栈：`Chrome Extension MV3 + Vite + Vanilla JavaScript`
 
-## 扩展展示
+## 扩展示意
 
 ![扩展卡片截图](./Screenshot/plugin.png)
 
-## 项目能做什么
+## 这个项目能做什么
 
-这个扩展是为更高效地筛选 LinkedIn 岗位而做的。它可以：
+这个扩展的目标是减少重复看 JD、反复比简历的时间成本。它可以：
 
-- 在 LinkedIn 单岗位页和搜索列表页读取岗位信息
+- 读取 LinkedIn 单岗位页和搜索列表页的岗位信息
 - 将上传的简历持久保存在本地，直到用户主动替换或删除
 - 通过多个 LLM provider 计算岗位匹配分数
-- 按简历、评分配置、Prompt 版本和模型配置缓存结果
-- 在 LinkedIn 原生页面里直接注入匹配分数和元信息角标
+- 按简历、评分配置、Prompt 版本和模型配置缓存分析结果
+- 在 LinkedIn 原生页面里直接注入分数和元信息标签
 - 检测 JD 语言、岗位要求经验年限、岗位要求语言
-- 基于本地 IND sponsor 数据做荷兰 sponsorship 判断
+- 基于本地 IND sponsor 数据判断荷兰 sponsorship / KM 信号
+- 收藏已经分析过的岗位
+- 区分查看 LinkedIn 岗位历史和手动插入岗位历史
+- 支持手动粘贴其他来源的岗位信息并在同一个 side panel 中分析
 
-## v0.1.1 更新重点
+## v0.1.2 更新重点
 
-- 新增统一的 `Analysis mode`，包含 `Strict`、`Balanced`、`Potential`、`Sponsorship-first`
-- 新增 `I need employer sponsorship` 开关，由用户明确决定 sponsorship 是否应该影响评分
-- sponsorship 评分改成规则优先，不再完全依赖模型自由发挥
-- sponsorship 状态更清楚：`Supported`、`Hard blocker`、`Conflicting signals`、`Not needed`
-- 新增 `Enable full custom scoring`
-  - 支持完全自定义权重
-  - 支持完整 `Full custom prompt`
-  - 支持附加 prompt instructions
-- 更清楚地区分 `Raw score` 和最终分数
-- 如果是 sponsorship 硬性门槛导致的 `0%`，顶部会直接显示 `Blocked`
+- 新增 `Library` 区块，支持：
+  - `History`
+  - `Saved`
+  - `LinkedIn`
+  - `Inserted`
+- 已分析岗位现在可以收藏，方便后续回看
+- 历史和收藏列表都支持卡片内二级详情页和返回按钮
+- `Inserted jobs` 独立成区块，放在 `List mode` 上方
+- 用户可以粘贴非 LinkedIn 岗位文本，并选择：
+  - `Rule detect`
+  - `Model detect`
+- 插入岗位支持分析、重分析、编辑、收藏、删除，并进入独立历史
+- `History` 和 `Saved` 都支持删除单条记录
+- 打开详情时不再自动把 side panel 滚动到底部
 
 ## 核心功能
 
 ### 1. 简历持久保存
 
-上传后的简历会保存到 `chrome.storage.local`，在以下场景不会丢失：
+上传后的简历会保存在 `chrome.storage.local` 中，在以下场景不会丢失：
 
 - 刷新页面
 - 关闭再打开侧边栏
@@ -63,7 +70,7 @@
 - 地点
 - JD 正文
 
-然后在侧边栏中显示结果。如果同一岗位已经针对当前简历和当前评分配置分析过，则优先复用缓存。
+然后在侧边栏中展示结果。如果同一个岗位已经针对当前简历和当前评分配置分析过，则优先复用缓存。
 
 ### 3. 列表模式分析
 
@@ -74,11 +81,34 @@
 - 加载当前页更多岗位
 - 对已有历史结果的岗位直接复用缓存
 - 重新分析当前岗位或当前显示的岗位
-- 点击列表项，在侧边栏内部打开二级详情视图
+- 点击列表项，在 side panel 内打开二级详情页
 
-### 4. LinkedIn 原生角标与标签
+### 4. Library：历史与收藏
 
-扩展会直接在 LinkedIn 原生界面中注入这些信息：
+新的 `Library` 区块可以让用户：
+
+- 在 `History` 和 `Saved` 之间切换
+- 在 `LinkedIn` 和 `Inserted` 之间切换
+- 打开历史分析详情
+- 删除单条历史记录
+- 删除单条收藏记录
+
+### 5. 手动插入岗位
+
+`Jobs from insert` 区块用于分析其他来源的岗位文本。
+
+用户可以：
+
+- 粘贴原始岗位文本
+- 选择 `Rule detect` 用本地规则提取字段
+- 选择 `Model detect` 用模型辅助结构化字段
+- 检查并修改提取后的字段
+- 保存并分析这个插入岗位
+- 后续再次打开它的分析结果
+
+### 6. LinkedIn 原生角标与标签
+
+扩展会在 LinkedIn 原生界面中注入这些信息：
 
 - 总体匹配分数
 - `KM` sponsorship 标记
@@ -86,7 +116,7 @@
 - 岗位要求经验年限
 - 岗位要求语言
 
-### 5. 多 provider 模型支持
+### 7. 多 provider 模型支持
 
 设置页支持为不同 provider 分别维护独立配置，例如：
 
@@ -110,32 +140,31 @@
 
 ### LinkedIn 页面整体工作流
 
-这张图展示了最核心的使用场景：
+这张图展示了分数角标、语言与经验标签、当前岗位上下文，以及列表模式下的分析结果。
 
-- LinkedIn 页面内的分数角标
-- 语言、经验、`KM` 等元信息标签
-- 侧边栏中的当前岗位上下文
-- list mode 下的缓存结果复用
+![主界面截图](./Screenshot/example%20v0.1.1.png)
 
-![主界面截图](./Screenshot/example.png)
+### 分析模式与评分控制
 
-### Analysis mode
-
-这张图展示了 `v0.1.1` 新增的 `Analysis mode`。
+这几张图展示了最近这版的评分设置和高级控制项。
 
 ![Analysis mode 截图](./Screenshot/Analysis%20mode.png)
 
-### Analysis preference 设置
-
-这张图展示了主要评分设置区域，包括 sponsorship 需求开关。
-
 ![Analysis preference 截图](./Screenshot/Analysis%20preference%20setting.png)
 
-### Full custom scoring
-
-这张图展示了 `Enable full custom scoring`、自定义权重和完整自定义 prompt。
-
 ![Full custom scoring 截图](./Screenshot/full%20custom%20scoring%20setting.png)
+
+### Library：历史与收藏
+
+这张图展示了 `Library` 中的历史和收藏切换视图。
+
+![Library 截图](./Screenshot/history%20and%20save.png)
+
+### Inserted jobs
+
+这张图展示了 `Jobs from insert` 区块，用于粘贴其他来源的岗位并分析。
+
+![Inserted jobs 截图](./Screenshot/insert.png)
 
 ### sponsorship 需要与不需要
 
@@ -151,39 +180,25 @@
 
 ![Breakdown 截图](./Screenshot/breakdown.png)
 
-### 设置页
+### 设置页与 provider 切换
 
-这张图展示了 provider、模型和其他通用配置。
+这些图展示了 provider 配置、模型切换、连通性测试等内容。
 
 ![设置页截图](./Screenshot/settings.png)
 
-### Provider 切换
-
-这张图展示了在多个 provider 之间切换时，保留各自独立配置的能力。
-
 ![Provider 切换截图](./Screenshot/provider%20switch.png)
-
-### 连通性测试
-
-这张图展示了在开始分析前验证 provider 和 model 是否可用。
 
 ![连通性测试截图](./Screenshot/Test%20Connection.png)
 
-### 批量分析进度
+### 侧边栏详情页
 
-这张图展示了列表模式中批量分析时的进度反馈。
-
-![批量分析截图](./Screenshot/clicking%20analyze%20or%20re-analyze.png)
-
-### 侧边栏详情视图
-
-这张图展示了点击列表岗位后，在侧边栏内部打开的二级详情分析页。
+这张图展示了点击岗位后在 side panel 内打开的二级详情页。
 
 ![详细分析截图](./Screenshot/specific%20jd%20match%20detail.png)
 
 ### Chrome 加载流程
 
-这张图可以直接用于说明如何在 `chrome://extensions/` 中开启开发者模式并加载已解压扩展。
+这张图可以用于说明如何在 `chrome://extensions/` 中开启开发者模式并加载扩展。
 
 ![Chrome 加载流程截图](./Screenshot/chrome%20procedure.png)
 
@@ -233,8 +248,6 @@ npm run build
 
 ### 方式二：从 GitHub Release 安装
 
-如果后续发布了 release zip：
-
 1. 下载 release 压缩包
 2. 解压文件
 3. 打开 `chrome://extensions/`
@@ -263,74 +276,15 @@ npm run build
 10. 按需要开启 `Full custom scoring`
 11. 保存设置
 
-## 评分逻辑
-
-### Analysis mode
-
-- `Strict`：对缺少 must-have 要求更保守
-- `Balanced`：通用平衡评估
-- `Potential`：更看重可迁移能力和成长潜力
-- `Sponsorship-first`：更加重视 sponsorship，并允许 sponsorship 成为硬性门槛
-
-### sponsorship 逻辑
-
-如果用户勾选了 `I need employer sponsorship`，那么 sponsorship 会纳入评分。
-
-`v0.1.1` 中 sponsorship 采用规则优先：
-
-- registry 命中且 JD 没明确拒绝 -> 明显正向
-- registry 命中但 JD 明确说不提供 sponsorship -> `0`
-- registry 未命中但 JD 有正向 sponsorship 表述 -> 低分并显示 `Conflicting signals`
-- registry 未命中且 JD 也显示不提供 sponsorship -> `0`
-
-只有 `Sponsorship-first` 模式才会在明确不兼容时把总分直接压成 `0`。
-
-## 缓存规则
-
-当前缓存键会隔离这些因素：
-
-- `jobId`
-- `resumeHash`
-- `scoringProfileHash`
-- `modelKeyHash`
-- `promptVersion`
-
-这样可以避免用户在修改简历、provider、评分模式、自定义权重或自定义 prompt 后误用旧结果。
-
-其他缓存行为：
-
-- 已分析岗位优先读取历史结果
-- 明显损坏的低质量缓存结果会被过滤
-- 超过 30 天的岗位历史记录会自动删除
-
 ## 隐私与数据处理
 
 - 简历内容保存在本地扩展存储中
 - API key 保存在本地扩展存储中
-- 请求只会发送到用户当前选择的模型 provider
-- sponsorship 判断使用项目内置的本地数据集
+- 模型请求只会发送到用户当前选择的 provider
+- sponsorship 判断使用项目内置的本地 sponsor 数据集
 
 关于数据来源与署名建议，请看 [DATA_ATTRIBUTION.md](./DATA_ATTRIBUTION.md)。
 
-## 发布说明
-
-这个文件夹是为公开 GitHub 仓库整理好的干净上传版本。
-
-它刻意不包含：
-
-- `node_modules`
-- 本地日志文件
-- 临时调试文件
-- 已构建好的 `dist/`
-
-推荐发布流程：
-
-1. 把这个文件夹里的内容上传到 GitHub 仓库
-2. 仓库本身作为源码仓库
-3. 本地执行 `npm run build`
-4. 将 `dist/` 压缩成 zip
-5. 将 zip 上传到 GitHub Releases
-
 ## License
 
-本项目采用 `MIT` License，见 [LICENSE](./LICENSE)。
+本项目采用 [MIT License](./LICENSE) 发布。
