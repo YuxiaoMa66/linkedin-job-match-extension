@@ -68,6 +68,7 @@ const COMPANY_STOPWORDS = new Set([
 let cachedINDData = null;
 let cacheTimestamp = 0;
 const CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
+const IND_DATASET_VERSION = '2026-08-26-1858';
 
 export function isNetherlands(location, description = '') {
   const combined = `${location || ''} ${description || ''}`.toLowerCase();
@@ -229,8 +230,8 @@ async function loadINDData() {
   try {
     const result = await chrome.storage.local.get('ind_sponsors_cache');
     if (result.ind_sponsors_cache) {
-      const { data, timestamp } = result.ind_sponsors_cache;
-      if (data && Date.now() - timestamp < CACHE_TTL) {
+      const { data, timestamp, version } = result.ind_sponsors_cache;
+      if (version === IND_DATASET_VERSION && data && Date.now() - timestamp < CACHE_TTL) {
         cachedINDData = data;
         cacheTimestamp = timestamp;
         return data;
@@ -250,7 +251,7 @@ async function loadINDData() {
 
       try {
         await chrome.storage.local.set({
-          ind_sponsors_cache: { data, timestamp: cacheTimestamp },
+          ind_sponsors_cache: { data, timestamp: cacheTimestamp, version: IND_DATASET_VERSION },
         });
       } catch {
         // Storage caching is optional.

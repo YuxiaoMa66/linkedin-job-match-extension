@@ -8,6 +8,12 @@ Files involved:
 - `data/ind_sponsors.json`
 - `data/update_sponsors.js`
 
+## Current bundled snapshot
+
+The bundled sponsor name list was refreshed on 2026-08-26 from the supplied `km_sponsorlist_20260826_1858.xlsx` workbook, using the `Organisation` column from `Sheet1`. The workbook contained 12,935 rows and 12,927 unique organisation names; 8 duplicate names were collapsed. KVK numbers are not bundled because the extension's runtime lookup uses a string array of organisation names.
+
+The dataset revision is `2026-08-26-1858`. The extension uses this revision when reading its local cache so an older cached sponsor list is ignored after an update.
+
 ## Source
 
 The sponsor list is derived from the public IND recognised sponsor information published on the official IND website:

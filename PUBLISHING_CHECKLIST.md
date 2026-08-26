@@ -4,7 +4,7 @@
 
 - [ ] Confirm the repository name you want on GitHub
 - [x] Choose a final license (`MIT`)
-- [ ] Build locally with `npm run build`
+- [x] Build locally with `npm run build`
 - [ ] Re-test the extension from `dist/`
 - [ ] Confirm screenshots reflect the current UI
 - [ ] Confirm no real API keys are committed
@@ -23,6 +23,6 @@
 
 - [ ] Build `dist/`
 - [ ] Zip `dist/`
-- [ ] Create a GitHub Release such as `v0.1.1`
+- [ ] Create a GitHub Release such as `v0.2.0`
 - [ ] Upload the built zip as a release asset
 - [ ] Add installation steps in the release notes

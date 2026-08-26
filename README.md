@@ -7,8 +7,10 @@
 Current release metadata:
 
 - Extension name: `LinkedIn Job Match`
-- Current manifest version: `0.1.2`
+- Current manifest version: `0.2.0`
 - Tech stack: `Chrome Extension MV3 + Vite + Vanilla JavaScript`
+
+> **Project homepage:** [`docs/index.html`](./docs/index.html) is the standalone product overview, ready to publish from the repository's `docs/` folder.
 
 ## Extension Snapshot
 
@@ -28,6 +30,14 @@ The extension is designed to reduce repetitive JD screening work. It can:
 - save interesting positions for later review
 - keep separate analysis history for LinkedIn jobs and manually inserted jobs
 - let users paste jobs from non-LinkedIn sources and analyze them inside the same side panel
+
+## What's New In v0.2.0
+
+- Refreshed the bundled IND-derived sponsor dataset from the 2026-08-26 source snapshot
+- Bundled 12,927 unique organisation names after collapsing duplicate rows
+- Added sponsor dataset revision checks so older local sponsor caches are ignored after an update
+- Added a standalone product homepage in `docs/` with the workflow, screenshots, signals, and local install path
+- Added GitHub-rendered README links so the Chinese documentation displays correctly
 
 ## What's New In v0.1.2
 
