@@ -25,6 +25,15 @@
   <a href="#configuration">Configuration</a>
 </p>
 
+> [!IMPORTANT]
+> **Current LinkedIn compatibility**
+>
+> The current version supports analysis on LinkedIn's **classic Jobs search interface** only. The newer **AI-powered search** interface is not supported yet. If LinkedIn opens AI-powered search, open `Learn more`, choose `Switch back to classic search`, and then refresh the LinkedIn page so the extension can read the classic layout.
+
+<p align="center">
+  <img src="./docs/assets/classic-search-switch.png" alt="LinkedIn's Learn more menu with Switch back to classic search highlighted" width="100%" />
+</p>
+
 ## Screen jobs with the context intact
 
 Match scores and job signals stay inside LinkedIn while the side panel keeps the resume, evidence, history, saved positions, and re-analysis controls together.
@@ -89,9 +98,9 @@ On a LinkedIn job detail page, the extension reads:
 
 It then shows the result in the side panel and reuses cache when the same job has already been analyzed for the same resume and scoring context.
 
-### 3. List mode analysis
+### 3. List mode analysis on classic Jobs search
 
-On LinkedIn search result pages, the extension can:
+On LinkedIn's classic Jobs search results page, the extension can:
 
 - detect visible job cards on the page
 - analyze the first `N` jobs automatically

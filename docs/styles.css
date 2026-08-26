@@ -466,6 +466,95 @@ h2 {
   line-height: 1.65;
 }
 
+.compatibility {
+  background: var(--surface);
+}
+
+.compatibility-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.22fr);
+  align-items: center;
+  gap: clamp(28px, 6vw, 88px);
+  padding: clamp(26px, 5vw, 64px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-strong);
+  box-shadow: var(--shadow-small);
+}
+
+.compatibility-copy {
+  max-width: 510px;
+}
+
+.compatibility-label {
+  margin-bottom: 18px;
+  color: var(--accent-deep);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.compatibility-copy h2 {
+  margin-bottom: 20px;
+  font-size: clamp(2.2rem, 4.1vw, 4.1rem);
+}
+
+.compatibility-copy > p:not(.compatibility-label) {
+  max-width: 470px;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.compatibility-instruction {
+  margin-top: 28px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+}
+
+.compatibility-steps {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0 0 0 24px;
+  color: var(--ink);
+  font-size: 0.92rem;
+  line-height: 1.65;
+}
+
+.compatibility-steps li::marker {
+  color: var(--accent-deep);
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+
+.compatibility-steps strong {
+  color: var(--accent-deep);
+  font-weight: 800;
+}
+
+.compatibility-guide {
+  margin: 0;
+  min-width: 0;
+}
+
+.compatibility-guide img {
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+  background: var(--surface-muted);
+}
+
+.compatibility-guide figcaption {
+  display: block;
+  padding-left: 4px;
+  color: var(--quiet);
+  text-align: left;
+}
+
 .proof {
   background: var(--bg-soft);
 }
@@ -1053,6 +1142,7 @@ html.js .reveal.is-visible {
   .hero-grid,
   .workflow-grid,
   .coverage-grid,
+  .compatibility-panel,
   .install-shell {
     grid-template-columns: 1fr;
   }
@@ -1068,6 +1158,10 @@ html.js .reveal.is-visible {
 
   .workflow-copy {
     position: static;
+    max-width: 720px;
+  }
+
+  .compatibility-copy {
     max-width: 720px;
   }
 
@@ -1126,6 +1220,15 @@ html.js .reveal.is-visible {
 
   .principles-grid {
     grid-template-columns: 1fr;
+  }
+
+  .compatibility-panel {
+    gap: 34px;
+    padding: 24px 20px;
+  }
+
+  .compatibility-copy h2 {
+    font-size: clamp(2.3rem, 12vw, 4rem);
   }
 
   .principle {

@@ -25,6 +25,15 @@
   <a href="#配置方式">配置</a>
 </p>
 
+> [!IMPORTANT]
+> **当前版本的 LinkedIn 兼容性限制**
+>
+> 当前版本只能分析 LinkedIn **经典版 Jobs 搜索界面**。暂时不支持新版 **AI-powered search** 界面。如果 LinkedIn 打开的是 AI 搜索界面，请先打开 `Learn more` 菜单，点击 `Switch back to classic search`，然后刷新 LinkedIn 页面。刷新后扩展才能重新读取经典版界面并显示分析结果。
+
+<p align="center">
+  <img src="./docs/assets/classic-search-switch.png" alt="LinkedIn 的 Learn more 菜单，其中突出显示了 Switch back to classic search" width="100%" />
+</p>
+
 ## 在投递前保留完整判断依据
 
 匹配分数和岗位信号直接显示在 LinkedIn 页面里，侧边栏则集中保存简历、证据、历史、收藏和重新分析入口。
@@ -92,9 +101,9 @@
 
 然后在侧边栏中展示结果。如果同一个岗位已经针对当前简历和当前评分配置分析过，则优先复用缓存。
 
-### 3. 列表模式分析
+### 3. 经典版 Jobs 搜索列表分析
 
-在 LinkedIn 搜索结果页中，扩展可以：
+在 LinkedIn 经典版 Jobs 搜索结果页中，扩展可以：
 
 - 识别当前页面可见岗位
 - 自动分析前 `N` 个岗位
