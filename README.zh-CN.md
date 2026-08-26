@@ -1,35 +1,45 @@
-**中文** | [English](./README.md)
+<p align="center">
+  <img src="./docs/assets/readme-hero.png" alt="LinkedIn Job Match，在投递前看清岗位匹配度" width="100%" />
+</p>
 
-# LinkedIn Job Match
+<p align="center">
+  <strong>简体中文</strong>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="./README.md">English</a>
+</p>
 
-`LinkedIn Job Match` 是一个基于 Chrome Manifest V3 的浏览器扩展，用来更快地筛选 LinkedIn 岗位，也支持把其他来源的岗位手动粘贴进来分析。它会比较简历和岗位描述的匹配度，在 LinkedIn 页面内直接展示分数和标签，并基于本地 IND 衍生数据给出荷兰 sponsorship / KM 相关信号。
+<p align="center">
+  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/releases/tag/v0.2.0"><img alt="版本 v0.2.0" src="https://img.shields.io/badge/release-v0.2.0-9a4a30?style=flat-square" /></a>
+  <img alt="Chrome Manifest V3" src="https://img.shields.io/badge/Chrome-MV3-9a4a30?style=flat-square" />
+  <img alt="Vite 5" src="https://img.shields.io/badge/Vite-5-9a4a30?style=flat-square" />
+  <a href="./LICENSE"><img alt="MIT 许可证" src="https://img.shields.io/badge/license-MIT-9a4a30?style=flat-square" /></a>
+</p>
 
-当前版本信息：
+<p align="center">
+  一个本地优先的 Chrome 扩展，把简历匹配、岗位分析历史、LinkedIn 页面信号和荷兰 sponsorship 信息放在同一套工作流里。
+</p>
 
-- 扩展名称：`LinkedIn Job Match`
-- 当前 manifest 版本：`0.2.0`
-- 技术栈：`Chrome Extension MV3 + Vite + Vanilla JavaScript`
+<p align="center">
+  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/releases/download/v0.2.0/linkedin-job-match-v0.2.0.zip"><strong>下载 v0.2.0</strong></a>
+  &nbsp;&nbsp;|&nbsp;&nbsp;
+  <a href="#安装方式">安装</a>
+  &nbsp;&nbsp;|&nbsp;&nbsp;
+  <a href="#配置方式">配置</a>
+</p>
 
-> **项目主页：** [`docs/index.html`](./docs/index.html) 是独立的产品介绍页，可以直接用仓库中的 `docs/` 文件夹发布。
+## 在投递前保留完整判断依据
 
-## 扩展示意
+匹配分数和岗位信号直接显示在 LinkedIn 页面里，侧边栏则集中保存简历、证据、历史、收藏和重新分析入口。
 
-![扩展卡片截图](./Screenshot/plugin.png)
+![带有匹配角标的 LinkedIn 搜索结果和 LinkedIn Job Match 侧边栏](./Screenshot/example%20v0.1.1.png)
 
-## 这个项目能做什么
+## 放进同一套工作流的信息
 
-这个扩展的目标是减少重复看 JD、反复比简历的时间成本。它可以：
-
-- 读取 LinkedIn 单岗位页和搜索列表页的岗位信息
-- 将上传的简历持久保存在本地，直到用户主动替换或删除
-- 通过多个 LLM provider 计算岗位匹配分数
-- 按简历、评分配置、Prompt 版本和模型配置缓存分析结果
-- 在 LinkedIn 原生页面里直接注入分数和元信息标签
-- 检测 JD 语言、岗位要求经验年限、岗位要求语言
-- 基于本地 IND sponsor 数据判断荷兰 sponsorship / KM 信号
-- 收藏已经分析过的岗位
-- 区分查看 LinkedIn 岗位历史和手动插入岗位历史
-- 支持手动粘贴其他来源的岗位信息并在同一个 side panel 中分析
+| 能力 | 带来的变化 |
+| --- | --- |
+| 简历与岗位匹配 | 支持单岗位、LinkedIn 搜索结果列表和手动粘贴的其他来源岗位。 |
+| LinkedIn 页面内信号 | 在岗位附近显示匹配分数、JD 语言、经验要求、岗位语言和 sponsorship 标记。 |
+| 可复用的判断历史 | 复用兼容缓存，区分 LinkedIn 与手动插入岗位历史，并收藏值得继续跟进的岗位。 |
+| 多模型服务商 | 支持 OpenAI、Anthropic、Gemini、OpenRouter、Poe 和自定义 OpenAI 兼容接口。 |
+| 荷兰 sponsorship 信息 | 使用内置 IND 衍生数据集检查组织名称，当前包含 12,927 个唯一名称。 |
 
 ## v0.2.0 更新重点
 
@@ -147,12 +157,6 @@
 - Retry 设置
 
 ## 截图
-
-### LinkedIn 页面整体工作流
-
-这张图展示了分数角标、语言与经验标签、当前岗位上下文，以及列表模式下的分析结果。
-
-![主界面截图](./Screenshot/example%20v0.1.1.png)
 
 ### 分析模式与评分控制
 

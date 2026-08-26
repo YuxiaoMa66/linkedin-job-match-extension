@@ -1,35 +1,45 @@
-[中文](./README.zh-CN.md) | **English**
+<p align="center">
+  <img src="./docs/assets/readme-hero.png" alt="LinkedIn Job Match. Know the fit before you apply." width="100%" />
+</p>
 
-# LinkedIn Job Match
+<p align="center">
+  <a href="./README.zh-CN.md">简体中文</a>&nbsp;&nbsp;|&nbsp;&nbsp;<strong>English</strong>
+</p>
 
-`LinkedIn Job Match` is a Chrome Manifest V3 extension for faster job screening on LinkedIn and beyond. It compares a resume against job descriptions, injects match badges into LinkedIn, keeps reusable analysis history, and adds Netherlands sponsorship signals using a local IND-derived dataset.
+<p align="center">
+  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/releases/tag/v0.2.0"><img alt="Release v0.2.0" src="https://img.shields.io/badge/release-v0.2.0-9a4a30?style=flat-square" /></a>
+  <img alt="Chrome Manifest V3" src="https://img.shields.io/badge/Chrome-MV3-9a4a30?style=flat-square" />
+  <img alt="Vite 5" src="https://img.shields.io/badge/Vite-5-9a4a30?style=flat-square" />
+  <a href="./LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-9a4a30?style=flat-square" /></a>
+</p>
 
-Current release metadata:
+<p align="center">
+  A local-first Chrome extension for resume matching, reusable job analysis, inline LinkedIn signals, and Netherlands sponsorship context.
+</p>
 
-- Extension name: `LinkedIn Job Match`
-- Current manifest version: `0.2.0`
-- Tech stack: `Chrome Extension MV3 + Vite + Vanilla JavaScript`
+<p align="center">
+  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/releases/download/v0.2.0/linkedin-job-match-v0.2.0.zip"><strong>Download v0.2.0</strong></a>
+  &nbsp;&nbsp;|&nbsp;&nbsp;
+  <a href="#installation">Installation</a>
+  &nbsp;&nbsp;|&nbsp;&nbsp;
+  <a href="#configuration">Configuration</a>
+</p>
 
-> **Project homepage:** [`docs/index.html`](./docs/index.html) is the standalone product overview, ready to publish from the repository's `docs/` folder.
+## Screen jobs with the context intact
 
-## Extension Snapshot
+Match scores and job signals stay inside LinkedIn while the side panel keeps the resume, evidence, history, saved positions, and re-analysis controls together.
 
-![Plugin card screenshot](./Screenshot/plugin.png)
+![LinkedIn search results with match badges and the LinkedIn Job Match side panel](./Screenshot/example%20v0.1.1.png)
 
-## What It Does
+## What It Brings Together
 
-The extension is designed to reduce repetitive JD screening work. It can:
-
-- read job descriptions from LinkedIn detail pages and search result pages
-- persist the uploaded resume locally until the user replaces or removes it
-- score fit with multiple LLM providers
-- cache analysis results by resume, scoring profile, prompt version, and model configuration
-- inject match badges and metadata badges directly into LinkedIn
-- detect JD language, required experience, and required job languages
-- evaluate Netherlands sponsorship signals using a local IND-derived sponsor dataset
-- save interesting positions for later review
-- keep separate analysis history for LinkedIn jobs and manually inserted jobs
-- let users paste jobs from non-LinkedIn sources and analyze them inside the same side panel
+| Capability | What it changes |
+| --- | --- |
+| Resume-to-role matching | Scores single jobs, visible LinkedIn search results, and jobs pasted from other sources. |
+| Inline LinkedIn signals | Adds match scores, JD language, required experience, job languages, and sponsorship markers near the posting. |
+| Reusable decision history | Caches compatible analyses, keeps separate LinkedIn and inserted-job history, and saves positions for later review. |
+| Provider choice | Supports OpenAI, Anthropic, Gemini, OpenRouter, Poe, and custom OpenAI-compatible endpoints. |
+| Netherlands sponsorship context | Checks organisation names against a bundled IND-derived dataset containing 12,927 unique names. |
 
 ## What's New In v0.2.0
 
@@ -146,12 +156,6 @@ Each provider keeps its own:
 - retry settings
 
 ## Screenshots
-
-### Main workflow on LinkedIn
-
-This shows score badges injected into LinkedIn, metadata badges, current job context, and list-mode cache reuse.
-
-![Main usage screenshot](./Screenshot/example%20v0.1.1.png)
 
 ### Analysis mode and scoring controls
 
