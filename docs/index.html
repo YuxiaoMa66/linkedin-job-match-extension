@@ -34,6 +34,7 @@
         <nav class="desktop-nav" aria-label="Primary navigation">
           <a href="#workflow">Workflow</a>
           <a href="#signals">Signals</a>
+          <a href="#title-signals">Title signals</a>
           <a href="#install">Install</a>
         </nav>
 
@@ -62,6 +63,7 @@
       <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation" hidden>
         <a href="#workflow">Workflow</a>
         <a href="#signals">Signals</a>
+        <a href="#title-signals">Title signals</a>
         <a href="#install">Install</a>
         <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension" target="_blank" rel="noreferrer">GitHub</a>
         <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/blob/main/README.zh-CN.md">中文 README</a>
@@ -161,6 +163,63 @@
               />
               <figcaption>Switch back to classic search, then refresh the LinkedIn page.</figcaption>
             </figure>
+          </div>
+        </div>
+      </section>
+
+      <section class="title-signals section-pad" id="title-signals" aria-labelledby="title-signals-title">
+        <div class="container">
+          <div class="section-lead reveal">
+            <p class="section-index">v0.3.0 preview · title signals</p>
+            <h2 id="title-signals-title">Make the useful details glanceable.</h2>
+            <p>
+              Language, experience, sponsorship, and the JD terms you care about can sit directly beside the job title — each in its own capsule, each with a color you can control.
+            </p>
+          </div>
+
+          <div class="title-signals-layout">
+            <article class="title-preview reveal">
+              <p class="title-preview-kicker">LinkedIn job title</p>
+              <h3>
+                Risk Analyst
+                <span class="title-pill title-pill-km">KM</span>
+                <span class="title-pill title-pill-jd">JD: English</span>
+                <span class="title-pill title-pill-lang">Lang: Dutch / English</span>
+                <span class="title-pill title-pill-exp">Exp: 3y+</span>
+                <span class="title-pill title-pill-keyword">KEY: SQL</span>
+              </h3>
+              <p class="title-preview-caption">A compact reading layer for the classic LinkedIn Jobs surface.</p>
+            </article>
+
+            <div class="title-legend reveal" style="--reveal-delay: 100ms">
+              <div class="title-legend-row">
+                <span class="title-pill title-pill-km">KM</span>
+                <span><strong>KM sponsorship</strong><small>Netherlands sponsor signal</small></span>
+              </div>
+              <div class="title-legend-row">
+                <span class="title-pill title-pill-jd">JD: English</span>
+                <span><strong>JD language</strong><small>Language detected in the posting</small></span>
+              </div>
+              <div class="title-legend-row">
+                <span class="title-pill title-pill-lang">Lang: Dutch / English</span>
+                <span><strong>Required language</strong><small>Languages requested by the role</small></span>
+              </div>
+              <div class="title-legend-row">
+                <span class="title-pill title-pill-exp">Exp: 3y+</span>
+                <span><strong>Experience years</strong><small>Requirement detected in the JD</small></span>
+              </div>
+              <div class="title-legend-row">
+                <span class="title-pill title-pill-keyword">KEY: SQL</span>
+                <span><strong>JD keyword</strong><small>One of up to five terms you define</small></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="title-settings-note reveal" style="--reveal-delay: 160ms">
+            <span class="title-settings-icon" aria-hidden="true">↳</span>
+            <p>
+              In Settings, choose Default, Color-blind friendly, or Custom colors. Custom mode accepts a separate hex code for every capsule; checkboxes control the four core signals, and three marker styles shape keyword matches.
+            </p>
           </div>
         </div>
       </section>

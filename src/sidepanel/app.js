@@ -1,8 +1,16 @@
 ﻿import {
   Actions,
   DEFAULT_ANALYSIS_PRESET,
+  TITLE_SIGNAL_KEYS,
+  TITLE_SIGNAL_ORDER,
   ItemNames,
   PROVIDERS,
+  findKeywordMatches,
+  getContrastTextColor,
+  getTitleDisplayColors,
+  normalizeHexColor,
+  normalizeKeywordList,
+  normalizeTitleDisplaySettings,
 } from '../shared/constants.js';
 import {
   getEffectiveWeights,
@@ -111,6 +119,14 @@ const els = {
   settingUseCustomWeights: $('#setting-use-custom-weights'),
   settingCustomPrompt: $('#setting-custom-prompt'),
   settingEnableDiagnostics: $('#setting-enable-diagnostics'),
+  settingTitleColorScheme: $('#setting-title-color-scheme'),
+  settingCustomTitleColors: $('#setting-custom-title-colors'),
+  settingTitleSignalCheckboxes: $$('[data-title-signal]'),
+  settingKeywordInputs: $$('[data-jd-keyword]'),
+  settingKeywordStyleInputs: $$('input[name="setting-keyword-style"]'),
+  settingKeywordCount: $('#setting-keyword-count'),
+  settingTitleColorPickers: $$('[data-title-color-picker]'),
+  settingTitleColorHexInputs: $$('[data-title-color-hex]'),
   settingWeightTotal: $('#setting-weight-total'),
   resetWeightsBtn: $('#reset-weights-btn'),
   weightSkills: $('#weight-skills'),
@@ -657,6 +673,7 @@ function renderManualJobs() {
       requiredExperience: cached?.requiredExperience || null,
       requiredLanguages: cached?.requiredLanguages || [],
       kmEligible: cached?.kmEligible === true,
+      keywordMatches: cached?.keywordMatches || [],
     });
 
     return `
@@ -715,6 +732,9 @@ function renderLibrary() {
       requiredExperience: item.requiredExperience || item.result?.metadata?.requiredExperience || null,
       requiredLanguages: item.requiredLanguages || item.result?.metadata?.requiredLanguages || [],
       kmEligible: item.kmEligible === true || item.result?.sponsorshipAssessment?.kmEligible === true,
+      keywordMatches: item.keywordMatches
+        || item.summary?.keywordMatches
+        || findKeywordMatches(item.summary?.jdText, currentConfig?.titleDisplaySettings?.keywordList),
     });
 
     return `
@@ -1066,6 +1086,17 @@ function setupSettings() {
   els.settingAnalysisPreset.addEventListener('change', handleAnalysisPresetChange);
   els.settingIncludeSponsorship.addEventListener('change', handleIncludeSponsorshipToggle);
   els.settingUseCustomWeights.addEventListener('change', handleUseCustomWeightsToggle);
+  els.settingTitleColorScheme.addEventListener('change', handleTitleColorSchemeChange);
+  els.settingKeywordInputs.forEach(input => {
+    input.addEventListener('input', updateKeywordCount);
+  });
+  els.settingTitleColorPickers.forEach(input => {
+    input.addEventListener('input', () => syncTitleColorInputs(input.dataset.titleColorPicker, 'picker'));
+  });
+  els.settingTitleColorHexInputs.forEach(input => {
+    input.addEventListener('input', () => validateTitleColorInput(input));
+    input.addEventListener('change', () => validateTitleColorInput(input));
+  });
   els.resetWeightsBtn.addEventListener('click', resetWeightsToPreset);
   getWeightInputs().forEach(input => {
     input.addEventListener('input', () => {
@@ -1141,6 +1172,7 @@ async function loadAndDisplayConfig() {
   applyProviderProfileToForm(els.settingProvider.value);
   els.settingAutoAnalyze.value = currentConfig.autoAnalyzeCount ?? 0;
   applyAnalysisSettingsToForm();
+  applyTitleDisplaySettingsToForm();
 }
 
 async function saveConfig() {
@@ -1169,6 +1201,7 @@ async function saveConfig() {
     additionalPromptInstructions: analysisSettings.additionalPromptInstructions,
     customPromptTemplate: analysisSettings.customPromptTemplate,
     enableDiagnostics: analysisSettings.enableDiagnostics,
+    titleDisplaySettings: readTitleDisplaySettingsForm(),
     providerProfiles: currentConfig.providerProfiles,
   };
 
@@ -1184,6 +1217,14 @@ async function saveConfig() {
 
     currentConfig = hydrateProviderProfiles(payload);
     applyAnalysisSettingsToForm();
+    applyTitleDisplaySettingsToForm();
+    renderJobList();
+    renderManualJobs();
+    renderLibrary();
+    if (currentJDData) {
+      handleJDData(currentJDData);
+    }
+    await refreshPageScores();
     showSaveHint('Settings saved.', 'success');
     maybeAutoAnalyzeList(true);
   } catch (err) {
@@ -1335,6 +1376,7 @@ function handleJDData(data) {
     requiredExperience: cachedCurrent?.requiredExperience || detectRequiredExperience(data?.description, data?.title),
     requiredLanguages: cachedCurrent?.requiredLanguages || detectRequiredLanguages(data?.description, data?.title),
     kmEligible: cachedCurrent?.kmEligible === true,
+    keywordMatches: findKeywordMatches(data?.description, currentConfig?.titleDisplaySettings?.keywordList),
   });
 
   if (data?.description && data.extractionConfidence !== 'failed') {
@@ -1449,6 +1491,7 @@ function renderJobList() {
       requiredExperience: cached?.requiredExperience || null,
       requiredLanguages: cached?.requiredLanguages || [],
       kmEligible: cached?.kmEligible === true,
+      keywordMatches: cached?.keywordMatches || [],
     });
 
     return `
@@ -1595,6 +1638,10 @@ function handleResult(result) {
       sponsorshipLabel: result.sponsorshipAssessment?.kmEligible ? 'KM' : null,
       sponsorshipCompany: result.sponsorshipAssessment?.registryMatchedName || null,
       sponsorshipConfidence: result.sponsorshipAssessment?.registryConfidence || null,
+      keywordMatches: findKeywordMatches(
+        currentJDData?.description,
+        currentConfig?.titleDisplaySettings?.keywordList,
+      ),
       result,
     });
     renderJobList();
@@ -2569,27 +2616,72 @@ function detectRequiredLanguages(description = '', title = '') {
   return matches.slice(0, 3);
 }
 
-function buildJdTitleBadges({ jdLanguage, requiredExperience, requiredLanguages, kmEligible }) {
+function buildJdTitleBadges({
+  jdLanguage,
+  requiredExperience,
+  requiredLanguages,
+  kmEligible,
+  keywordMatches = [],
+}) {
+  const settings = normalizeTitleDisplaySettings(currentConfig?.titleDisplaySettings);
+  const colors = getTitleDisplayColors(settings);
+  const languageList = Array.isArray(requiredLanguages)
+    ? requiredLanguages.filter(Boolean).slice(0, 3)
+    : [];
+  const signalLabels = {
+    [TITLE_SIGNAL_KEYS.KM]: kmEligible ? 'KM' : '',
+    [TITLE_SIGNAL_KEYS.JD_LANGUAGE]: jdLanguage && jdLanguage !== 'Unknown' ? `JD: ${jdLanguage}` : '',
+    [TITLE_SIGNAL_KEYS.REQUIRED_LANGUAGE]: languageList.length ? `Lang: ${languageList.join(' / ')}` : '',
+    [TITLE_SIGNAL_KEYS.EXPERIENCE]: requiredExperience ? `Exp: ${requiredExperience}` : '',
+  };
+  const signalTitles = {
+    [TITLE_SIGNAL_KEYS.KM]: 'KnowledgeMigrant sponsorship signal',
+    [TITLE_SIGNAL_KEYS.JD_LANGUAGE]: `Language detected in the JD: ${jdLanguage || 'Unknown'}`,
+    [TITLE_SIGNAL_KEYS.REQUIRED_LANGUAGE]: `Required language: ${languageList.join(' / ')}`,
+    [TITLE_SIGNAL_KEYS.EXPERIENCE]: `Experience requirement: ${requiredExperience || 'Not detected'}`,
+  };
   const badges = [];
 
-  if (jdLanguage && jdLanguage !== 'Unknown') {
-    badges.push(`<span class="job-lang-pill">${escapeHtml(jdLanguage)}</span>`);
+  for (const signalKey of TITLE_SIGNAL_ORDER) {
+    if (settings.visibleSignals[signalKey] === false || !signalLabels[signalKey]) {
+      continue;
+    }
+    badges.push(buildTitleSignalPill(
+      signalKey,
+      signalLabels[signalKey],
+      colors[signalKey],
+      signalTitles[signalKey],
+    ));
   }
 
-  if (requiredExperience) {
-    badges.push(`<span class="job-requirement-pill">${escapeHtml(requiredExperience)}</span>`);
-  }
-
-  const languageList = Array.isArray(requiredLanguages) ? requiredLanguages.filter(Boolean).slice(0, 2) : [];
-  for (const language of languageList) {
-    badges.push(`<span class="job-requirement-pill">${escapeHtml(language)}</span>`);
-  }
-
-  if (kmEligible) {
-    badges.push('<span class="job-km-pill">KM</span>');
+  if (settings.visibleSignals[TITLE_SIGNAL_KEYS.KEYWORD] !== false) {
+    for (const keyword of normalizeKeywordList(keywordMatches)) {
+      const marker = formatKeywordMarker(keyword, settings.keywordStyle);
+      badges.push(buildTitleSignalPill(
+        TITLE_SIGNAL_KEYS.KEYWORD,
+        marker,
+        colors[TITLE_SIGNAL_KEYS.KEYWORD],
+        `JD keyword matched: ${keyword}`,
+      ));
+    }
   }
 
   return badges.length ? ` ${badges.join('')}` : '';
+}
+
+function buildTitleSignalPill(signalKey, label, backgroundColor, title) {
+  const safeColor = normalizeHexColor(backgroundColor, '#6f5b49');
+  return `<span class="title-signal-pill title-signal-pill-${signalKey}" style="background-color:${safeColor};color:${getContrastTextColor(safeColor)}" title="${escapeHtml(title)}">${escapeHtml(label)}</span>`;
+}
+
+function formatKeywordMarker(keyword, style) {
+  if (style === 'bracket') {
+    return `[${keyword}]`;
+  }
+  if (style === 'spark') {
+    return `✦ ${keyword}`;
+  }
+  return `KEY: ${keyword}`;
 }
 
 function buildSaveStarButton(jobId, sourceType, isSaved) {
@@ -2690,6 +2782,7 @@ function hydrateProviderProfiles(config) {
       ? config.customPromptTemplate
       : '',
     enableDiagnostics: config?.enableDiagnostics !== false,
+    titleDisplaySettings: normalizeTitleDisplaySettings(config?.titleDisplaySettings),
     providerProfiles,
   };
 }
@@ -2777,6 +2870,108 @@ function applyAnalysisSettingsToForm() {
   setWeightInputsFromWeights(previewWeights);
   updateWeightInputState();
   updateWeightTotalHint();
+}
+
+function applyTitleDisplaySettingsToForm() {
+  if (!currentConfig) {
+    return;
+  }
+
+  const settings = normalizeTitleDisplaySettings(currentConfig.titleDisplaySettings);
+  currentConfig.titleDisplaySettings = settings;
+  els.settingTitleColorScheme.value = settings.colorScheme;
+  els.settingTitleSignalCheckboxes.forEach(input => {
+    input.checked = settings.visibleSignals[input.dataset.titleSignal] !== false;
+  });
+  els.settingKeywordInputs.forEach((input, index) => {
+    input.value = settings.keywordList[index] || '';
+  });
+  els.settingKeywordStyleInputs.forEach(input => {
+    input.checked = input.value === settings.keywordStyle;
+  });
+  els.settingTitleColorHexInputs.forEach(input => {
+    const key = input.dataset.titleColorHex;
+    input.value = settings.customColors[key] || '';
+    input.classList.remove('invalid');
+  });
+  els.settingTitleColorPickers.forEach(input => {
+    const key = input.dataset.titleColorPicker;
+    input.value = settings.customColors[key] || '#000000';
+  });
+  toggleCustomTitleColorInputs();
+  updateKeywordCount();
+}
+
+function readTitleDisplaySettingsForm() {
+  const existing = normalizeTitleDisplaySettings(currentConfig?.titleDisplaySettings);
+  const visibleSignals = { ...existing.visibleSignals };
+  els.settingTitleSignalCheckboxes.forEach(input => {
+    visibleSignals[input.dataset.titleSignal] = input.checked;
+  });
+
+  const customColors = { ...existing.customColors };
+  els.settingTitleColorHexInputs.forEach(input => {
+    const key = input.dataset.titleColorHex;
+    const color = normalizeHexColor(input.value, null);
+    if (color) {
+      customColors[key] = color;
+      input.value = color;
+      input.classList.remove('invalid');
+    } else {
+      input.classList.add('invalid');
+    }
+  });
+
+  const selectedStyle = [...els.settingKeywordStyleInputs].find(input => input.checked)?.value;
+  return normalizeTitleDisplaySettings({
+    colorScheme: els.settingTitleColorScheme.value,
+    visibleSignals,
+    customColors,
+    keywordList: [...els.settingKeywordInputs].map(input => input.value),
+    keywordStyle: selectedStyle || existing.keywordStyle,
+  });
+}
+
+function handleTitleColorSchemeChange() {
+  toggleCustomTitleColorInputs();
+}
+
+function toggleCustomTitleColorInputs() {
+  const isCustom = els.settingTitleColorScheme.value === 'custom';
+  els.settingCustomTitleColors.classList.toggle('hidden', !isCustom);
+}
+
+function syncTitleColorInputs(key, source) {
+  const picker = [...els.settingTitleColorPickers].find(input => input.dataset.titleColorPicker === key);
+  const hexInput = [...els.settingTitleColorHexInputs].find(input => input.dataset.titleColorHex === key);
+  if (!picker || !hexInput) {
+    return;
+  }
+
+  if (source === 'picker') {
+    const color = normalizeHexColor(picker.value, null);
+    if (color) {
+      hexInput.value = color;
+      hexInput.classList.remove('invalid');
+    }
+    return;
+  }
+
+  const color = normalizeHexColor(hexInput.value, null);
+  hexInput.classList.toggle('invalid', !color && hexInput.value.trim() !== '');
+  if (color) {
+    picker.value = color;
+    hexInput.value = color;
+  }
+}
+
+function validateTitleColorInput(input) {
+  syncTitleColorInputs(input.dataset.titleColorHex, 'hex');
+}
+
+function updateKeywordCount() {
+  const count = normalizeKeywordList([...els.settingKeywordInputs].map(input => input.value)).length;
+  els.settingKeywordCount.textContent = `${count}/5 keywords`;
 }
 
 function readAnalysisSettingsForm() {
@@ -2974,4 +3169,3 @@ function debounce(fn, delay) {
 const scheduleRefreshPageContext = debounce(() => {
   refreshPageContext().catch(err => console.warn('Failed to refresh page context:', err));
 }, 500);
-

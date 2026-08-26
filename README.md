@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/releases/tag/v0.2.0"><img alt="Release v0.2.0" src="https://img.shields.io/badge/release-v0.2.0-9a4a30?style=flat-square" /></a>
+  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/feature/v0.3.0-title-signals"><img alt="Preview v0.3.0" src="https://img.shields.io/badge/preview-v0.3.0-9a4a30?style=flat-square" /></a>
   <img alt="Chrome Manifest V3" src="https://img.shields.io/badge/Chrome-MV3-9a4a30?style=flat-square" />
   <img alt="Vite 5" src="https://img.shields.io/badge/Vite-5-9a4a30?style=flat-square" />
   <a href="./LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-9a4a30?style=flat-square" /></a>
@@ -18,12 +18,15 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/releases/download/v0.2.0/linkedin-job-match-v0.2.0.zip"><strong>Download v0.2.0</strong></a>
+  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/feature/v0.3.0-title-signals"><strong>Test v0.3.0 branch</strong></a>
   &nbsp;&nbsp;|&nbsp;&nbsp;
   <a href="#installation">Installation</a>
   &nbsp;&nbsp;|&nbsp;&nbsp;
   <a href="#configuration">Configuration</a>
 </p>
+
+> [!NOTE]
+> `v0.3.0` is currently published on the `feature/v0.3.0-title-signals` branch for testing. It has not been merged into `main` and does not replace the stable `v0.2.0` release yet.
 
 > [!IMPORTANT]
 > **Current LinkedIn compatibility**
@@ -45,10 +48,34 @@ Match scores and job signals stay inside LinkedIn while the side panel keeps the
 | Capability | What it changes |
 | --- | --- |
 | Resume-to-role matching | Scores single jobs, visible LinkedIn search results, and jobs pasted from other sources. |
-| Inline LinkedIn signals | Adds match scores, JD language, required experience, job languages, and sponsorship markers near the posting. |
+| Inline LinkedIn signals | Adds match scores and configurable title capsules for JD language, required language, experience, sponsorship, and JD keywords. |
 | Reusable decision history | Caches compatible analyses, keeps separate LinkedIn and inserted-job history, and saves positions for later review. |
 | Provider choice | Supports OpenAI, Anthropic, Gemini, OpenRouter, Poe, and custom OpenAI-compatible endpoints. |
 | Netherlands sponsorship context | Checks organisation names against a bundled IND-derived dataset containing 12,927 unique names. |
+
+## What's New In v0.3.0 (test branch)
+
+- Added separate title capsules for `JD language` and `Required language`, with `KM` and `Experience` shown as independent signals
+- Added `Default`, `Color-blind friendly`, and `Custom colors` schemes in Settings
+- Custom mode accepts a separate hex color for every capsule: KM, JD language, required language, experience years, and JD keyword
+- Added checkboxes for choosing which of the four core title signals are visible
+- Added up to five JD keyword matches, with `Tag`, `Bracket`, and `Spark` marker styles
+- Existing analyzed jobs reuse their cached JD excerpt when keyword settings change, so the model does not need to run again
+- Kept the LinkedIn compatibility boundary explicit: use classic Jobs search, switch back from AI-powered search, then refresh the page
+
+### Title capsule color legend
+
+The default set uses one color per signal. The match-score badge is separate and keeps its score-based color.
+
+| Title capsule | Example | Default color | Color-blind-friendly color |
+| --- | --- | --- | --- |
+| KM sponsorship | `KM` | Blue `#2563EB` | Blue `#0072B2` |
+| JD language | `JD: English` | Violet `#7C3AED` | Vermilion `#D55E00` |
+| Required language | `Lang: English / Dutch` | Teal `#0F766E` | Green `#009E73` |
+| Experience years | `Exp: 3y+` | Amber `#B45309` | Orange `#E69F00` |
+| JD keyword | `KEY: SQL` | Rose `#BE123C` | Mauve `#CC79A7` |
+
+In Settings → Title signals, choose the color set from the dropdown. The color-blind-friendly set is designed with stronger hue separation; Custom colors lets you enter a hex code for each capsule independently. The four core signals are controlled with checkboxes. Keyword markers appear after an analyzed JD matches one of the five configured keywords.
 
 ## What's New In v0.2.0
 
@@ -144,7 +171,18 @@ Supported inline signals include:
 - required experience
 - required job languages
 
-### 7. Multi-provider model support
+### 7. Configurable title capsules and JD keyword markers
+
+Open Settings → Title signals to:
+
+- choose the default or color-blind-friendly palette
+- enter a separate custom hex color for every capsule
+- toggle KM, JD language, required language, and experience years independently
+- add up to five JD keywords and choose the marker style shown in the title
+
+The keyword scan is based on the JD text already captured for an analyzed job. Saving new settings refreshes the visible LinkedIn page.
+
+### 8. Multi-provider model support
 
 The settings UI supports separate profiles for:
 
@@ -268,7 +306,7 @@ Reference:
 
 ![Chrome extension loading procedure screenshot](./Screenshot/chrome%20procedure.png)
 
-### Option B: Install from a GitHub release asset
+### Option B: Install from a GitHub release asset (stable v0.2.0)
 
 1. download the release archive
 2. extract it
@@ -281,6 +319,8 @@ Common mistake to avoid:
 
 - GitHub source archives are not the same as the built extension package.
 - If someone downloads the repository source and loads the root folder instead of `dist/`, resume parsing for `PDF` or `DOCX` files may fail.
+
+For the `v0.3.0` test branch, build from `feature/v0.3.0-title-signals` with Option A. The branch intentionally has no official release asset until testing is complete.
 
 ## Configuration
 
@@ -296,12 +336,15 @@ After opening the side panel:
 8. choose an `Analysis mode`
 9. choose whether `I need employer sponsorship`
 10. optionally enable `Full custom scoring`
-11. save settings
+11. open `Title signals` and choose the visible capsules
+12. optionally select a color scheme, enter independent custom hex colors, and add up to five JD keywords
+13. save settings
 
 ## Privacy and Data Handling
 
 - resume content is stored in local extension storage
 - API keys are stored in local extension storage
+- analyzed job caches may store a bounded local JD excerpt so keyword markers can be recalculated after settings changes
 - model requests are only sent to the currently selected provider
 - sponsorship checks use the bundled local sponsor dataset
 

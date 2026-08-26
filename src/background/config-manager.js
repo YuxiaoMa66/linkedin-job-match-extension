@@ -1,7 +1,11 @@
 // ─────────────────────────────────────────────────
 // Config Manager — persistent config via chrome.storage
 // ─────────────────────────────────────────────────
-import { DEFAULT_MODEL_CONFIG, PROVIDERS } from '../shared/constants.js';
+import {
+  DEFAULT_MODEL_CONFIG,
+  PROVIDERS,
+  normalizeTitleDisplaySettings,
+} from '../shared/constants.js';
 
 const STORAGE_KEY = 'ljm_config';
 
@@ -34,6 +38,7 @@ export async function loadConfig() {
           ? merged.customPromptTemplate
           : '',
         enableDiagnostics: merged.enableDiagnostics !== false,
+        titleDisplaySettings: normalizeTitleDisplaySettings(merged.titleDisplaySettings),
       };
     }
   } catch (err) {
@@ -42,6 +47,7 @@ export async function loadConfig() {
   return {
     ...DEFAULT_MODEL_CONFIG,
     providerProfiles: normalizeProviderProfiles(DEFAULT_MODEL_CONFIG.providerProfiles),
+    titleDisplaySettings: normalizeTitleDisplaySettings(DEFAULT_MODEL_CONFIG.titleDisplaySettings),
   };
 }
 
@@ -84,6 +90,7 @@ export async function saveConfig(config) {
           ? merged.customPromptTemplate
           : '',
         enableDiagnostics: merged.enableDiagnostics !== false,
+        titleDisplaySettings: normalizeTitleDisplaySettings(merged.titleDisplaySettings),
         _savedAt: new Date().toISOString(),
       },
     });

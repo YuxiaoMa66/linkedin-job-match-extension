@@ -129,6 +129,185 @@ export const ErrorTypes = Object.freeze({
 
 export const DEFAULT_ANALYSIS_PRESET = ScoringPresets.BALANCED;
 
+export const TITLE_SIGNAL_KEYS = Object.freeze({
+  KM: 'km',
+  JD_LANGUAGE: 'jdLanguage',
+  REQUIRED_LANGUAGE: 'requiredLanguage',
+  EXPERIENCE: 'experience',
+  KEYWORD: 'keyword',
+});
+
+export const TITLE_SIGNAL_ORDER = Object.freeze([
+  TITLE_SIGNAL_KEYS.KM,
+  TITLE_SIGNAL_KEYS.JD_LANGUAGE,
+  TITLE_SIGNAL_KEYS.REQUIRED_LANGUAGE,
+  TITLE_SIGNAL_KEYS.EXPERIENCE,
+]);
+
+export const TITLE_SIGNAL_LABELS = Object.freeze({
+  [TITLE_SIGNAL_KEYS.KM]: 'KM sponsor tag',
+  [TITLE_SIGNAL_KEYS.JD_LANGUAGE]: 'JD language',
+  [TITLE_SIGNAL_KEYS.REQUIRED_LANGUAGE]: 'Required language',
+  [TITLE_SIGNAL_KEYS.EXPERIENCE]: 'Experience years',
+  [TITLE_SIGNAL_KEYS.KEYWORD]: 'JD keyword',
+});
+
+export const TITLE_COLOR_SCHEMES = Object.freeze({
+  default: Object.freeze({
+    label: 'Default',
+    colors: Object.freeze({
+      [TITLE_SIGNAL_KEYS.KM]: '#2563eb',
+      [TITLE_SIGNAL_KEYS.JD_LANGUAGE]: '#7c3aed',
+      [TITLE_SIGNAL_KEYS.REQUIRED_LANGUAGE]: '#0f766e',
+      [TITLE_SIGNAL_KEYS.EXPERIENCE]: '#b45309',
+      [TITLE_SIGNAL_KEYS.KEYWORD]: '#be123c',
+    }),
+  }),
+  colorblind: Object.freeze({
+    label: 'Color-blind friendly',
+    colors: Object.freeze({
+      [TITLE_SIGNAL_KEYS.KM]: '#0072b2',
+      [TITLE_SIGNAL_KEYS.JD_LANGUAGE]: '#d55e00',
+      [TITLE_SIGNAL_KEYS.REQUIRED_LANGUAGE]: '#009e73',
+      [TITLE_SIGNAL_KEYS.EXPERIENCE]: '#e69f00',
+      [TITLE_SIGNAL_KEYS.KEYWORD]: '#cc79a7',
+    }),
+  }),
+});
+
+export const TITLE_KEYWORD_STYLES = Object.freeze([
+  Object.freeze({ id: 'tag', label: 'Tag', example: 'KEY: SQL' }),
+  Object.freeze({ id: 'bracket', label: 'Bracket', example: '[SQL]' }),
+  Object.freeze({ id: 'spark', label: 'Spark', example: '✦ SQL' }),
+]);
+
+export const DEFAULT_TITLE_DISPLAY_SETTINGS = Object.freeze({
+  colorScheme: 'default',
+  visibleSignals: Object.freeze({
+    [TITLE_SIGNAL_KEYS.KM]: true,
+    [TITLE_SIGNAL_KEYS.JD_LANGUAGE]: true,
+    [TITLE_SIGNAL_KEYS.REQUIRED_LANGUAGE]: true,
+    [TITLE_SIGNAL_KEYS.EXPERIENCE]: true,
+    [TITLE_SIGNAL_KEYS.KEYWORD]: true,
+  }),
+  customColors: Object.freeze({ ...TITLE_COLOR_SCHEMES.default.colors }),
+  keywordList: Object.freeze([]),
+  keywordStyle: 'tag',
+});
+
+export function normalizeHexColor(value, fallback = null) {
+  if (typeof value !== 'string') {
+    return fallback;
+  }
+
+  const candidate = value.trim().toLowerCase();
+  if (/^#[0-9a-f]{6}$/.test(candidate)) {
+    return candidate;
+  }
+
+  if (/^#[0-9a-f]{3}$/.test(candidate)) {
+    return `#${candidate.slice(1).split('').map(char => `${char}${char}`).join('')}`;
+  }
+
+  return fallback;
+}
+
+export function normalizeKeywordList(value) {
+  const candidates = Array.isArray(value)
+    ? value
+    : typeof value === 'string'
+      ? value.split(/[\n,]/)
+      : [];
+  const seen = new Set();
+  const keywords = [];
+
+  for (const candidate of candidates) {
+    const keyword = String(candidate || '').replace(/\s+/g, ' ').trim();
+    const key = keyword.toLocaleLowerCase();
+    if (!keyword || seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    keywords.push(keyword.slice(0, 80));
+    if (keywords.length >= 5) {
+      break;
+    }
+  }
+
+  return keywords;
+}
+
+export function normalizeTitleDisplaySettings(settings) {
+  const source = settings && typeof settings === 'object' ? settings : {};
+  const scheme = source.colorScheme === 'custom'
+    || Object.prototype.hasOwnProperty.call(TITLE_COLOR_SCHEMES, source.colorScheme)
+    ? source.colorScheme
+    : DEFAULT_TITLE_DISPLAY_SETTINGS.colorScheme;
+  const defaultColors = TITLE_COLOR_SCHEMES.default.colors;
+  const sourceColors = source.customColors && typeof source.customColors === 'object'
+    ? source.customColors
+    : {};
+  const customColors = Object.fromEntries(
+    Object.keys(defaultColors).map(key => [
+      key,
+      normalizeHexColor(sourceColors[key], defaultColors[key]),
+    ]),
+  );
+  const visibleSignals = Object.fromEntries(
+    Object.keys(DEFAULT_TITLE_DISPLAY_SETTINGS.visibleSignals).map(key => [
+      key,
+      source.visibleSignals?.[key] !== false,
+    ]),
+  );
+  const keywordStyle = TITLE_KEYWORD_STYLES.some(style => style.id === source.keywordStyle)
+    ? source.keywordStyle
+    : DEFAULT_TITLE_DISPLAY_SETTINGS.keywordStyle;
+
+  return {
+    colorScheme: scheme,
+    visibleSignals,
+    customColors,
+    keywordList: normalizeKeywordList(source.keywordList),
+    keywordStyle,
+  };
+}
+
+export function getTitleDisplayColors(settings) {
+  const normalized = normalizeTitleDisplaySettings(settings);
+  if (normalized.colorScheme !== 'custom') {
+    return { ...TITLE_COLOR_SCHEMES[normalized.colorScheme].colors };
+  }
+  return { ...normalized.customColors };
+}
+
+export function getContrastTextColor(value) {
+  const hex = normalizeHexColor(value, '#000000').slice(1);
+  const luminance = getRelativeLuminance(hex);
+  const darkLuminance = getRelativeLuminance('251b12');
+  const whiteContrast = 1.05 / (luminance + 0.05);
+  const darkContrast = (luminance + 0.05) / (darkLuminance + 0.05);
+  return darkContrast > whiteContrast ? '#251b12' : '#ffffff';
+}
+
+function getRelativeLuminance(hex) {
+  const channels = [0, 2, 4].map(index => Number.parseInt(hex.slice(index, index + 2), 16) / 255);
+  const linear = channels.map(channel => (
+    channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4
+  ));
+  return (0.2126 * linear[0]) + (0.7152 * linear[1]) + (0.0722 * linear[2]);
+}
+
+export function findKeywordMatches(text, keywordList) {
+  const normalizedText = String(text || '').replace(/\s+/g, ' ').toLocaleLowerCase();
+  if (!normalizedText) {
+    return [];
+  }
+
+  return normalizeKeywordList(keywordList).filter(keyword => (
+    normalizedText.includes(keyword.replace(/\s+/g, ' ').toLocaleLowerCase())
+  ));
+}
+
 export const PRESET_WEIGHT_PROFILES = Object.freeze({
   [ScoringPresets.STRICT]: Object.freeze({
     [ItemNames.SKILLS]: 0.32,
@@ -217,6 +396,7 @@ export const DEFAULT_MODEL_CONFIG = Object.freeze({
   customPromptTemplate: '',
   enableDiagnostics: true,
   providerProfiles: {},
+  titleDisplaySettings: DEFAULT_TITLE_DISPLAY_SETTINGS,
 });
 
 export const PROVIDERS = Object.freeze([

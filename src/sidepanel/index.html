@@ -457,6 +457,117 @@
           </label>
         </div>
 
+        <section class="title-display-settings">
+          <div class="card-header settings-subheader">
+            <div>
+              <p class="eyebrow">LinkedIn title</p>
+              <h2>Title signals</h2>
+            </div>
+          </div>
+          <p class="field-hint">Choose which compact signals appear beside analyzed LinkedIn job titles. Save to apply the changes on the current page.</p>
+
+          <div class="form-group">
+            <label for="setting-title-color-scheme">Capsule color set</label>
+            <select id="setting-title-color-scheme" class="form-select">
+              <option value="default">Default</option>
+              <option value="colorblind">Color-blind friendly</option>
+              <option value="custom">Custom colors</option>
+            </select>
+          </div>
+
+          <div id="setting-custom-title-colors" class="custom-color-grid hidden">
+            <p class="field-hint">Set a separate color for every capsule. Use the color picker or enter a hex code such as #2563EB.</p>
+
+            <div class="custom-color-row">
+              <label for="title-color-hex-km">KM sponsor tag</label>
+              <div class="color-input-pair">
+                <input id="title-color-picker-km" type="color" value="#2563eb" data-title-color-picker="km" aria-label="KM sponsor tag color" />
+                <input id="title-color-hex-km" type="text" class="form-input color-hex-input" value="#2563eb" data-title-color-hex="km" maxlength="7" pattern="#[0-9a-fA-F]{6}" placeholder="#2563EB" />
+              </div>
+            </div>
+
+            <div class="custom-color-row">
+              <label for="title-color-hex-jdLanguage">JD language</label>
+              <div class="color-input-pair">
+                <input id="title-color-picker-jdLanguage" type="color" value="#7c3aed" data-title-color-picker="jdLanguage" aria-label="JD language color" />
+                <input id="title-color-hex-jdLanguage" type="text" class="form-input color-hex-input" value="#7c3aed" data-title-color-hex="jdLanguage" maxlength="7" pattern="#[0-9a-fA-F]{6}" placeholder="#7C3AED" />
+              </div>
+            </div>
+
+            <div class="custom-color-row">
+              <label for="title-color-hex-requiredLanguage">Required language</label>
+              <div class="color-input-pair">
+                <input id="title-color-picker-requiredLanguage" type="color" value="#0f766e" data-title-color-picker="requiredLanguage" aria-label="Required language color" />
+                <input id="title-color-hex-requiredLanguage" type="text" class="form-input color-hex-input" value="#0f766e" data-title-color-hex="requiredLanguage" maxlength="7" pattern="#[0-9a-fA-F]{6}" placeholder="#0F766E" />
+              </div>
+            </div>
+
+            <div class="custom-color-row">
+              <label for="title-color-hex-experience">Experience years</label>
+              <div class="color-input-pair">
+                <input id="title-color-picker-experience" type="color" value="#b45309" data-title-color-picker="experience" aria-label="Experience years color" />
+                <input id="title-color-hex-experience" type="text" class="form-input color-hex-input" value="#b45309" data-title-color-hex="experience" maxlength="7" pattern="#[0-9a-fA-F]{6}" placeholder="#B45309" />
+              </div>
+            </div>
+
+            <div class="custom-color-row">
+              <label for="title-color-hex-keyword">JD keyword</label>
+              <div class="color-input-pair">
+                <input id="title-color-picker-keyword" type="color" value="#be123c" data-title-color-picker="keyword" aria-label="JD keyword color" />
+                <input id="title-color-hex-keyword" type="text" class="form-input color-hex-input" value="#be123c" data-title-color-hex="keyword" maxlength="7" pattern="#[0-9a-fA-F]{6}" placeholder="#BE123C" />
+              </div>
+            </div>
+          </div>
+
+          <fieldset class="settings-fieldset">
+            <legend>Signals shown beside the job title</legend>
+            <label class="checkbox-row" for="setting-title-signal-km">
+              <input type="checkbox" id="setting-title-signal-km" data-title-signal="km" checked />
+              <span>KM sponsor tag</span>
+            </label>
+            <label class="checkbox-row" for="setting-title-signal-jdLanguage">
+              <input type="checkbox" id="setting-title-signal-jdLanguage" data-title-signal="jdLanguage" checked />
+              <span>JD language</span>
+            </label>
+            <label class="checkbox-row" for="setting-title-signal-requiredLanguage">
+              <input type="checkbox" id="setting-title-signal-requiredLanguage" data-title-signal="requiredLanguage" checked />
+              <span>Required language</span>
+            </label>
+            <label class="checkbox-row" for="setting-title-signal-experience">
+              <input type="checkbox" id="setting-title-signal-experience" data-title-signal="experience" checked />
+              <span>Experience years</span>
+            </label>
+          </fieldset>
+
+          <fieldset class="settings-fieldset">
+            <legend>JD keyword markers</legend>
+            <p class="field-hint">Add up to 5 keywords. When an analyzed JD contains one, it is shown as a separate title capsule.</p>
+            <div class="keyword-input-grid">
+              <input type="text" class="form-input" data-jd-keyword="1" maxlength="80" placeholder="SQL" aria-label="JD keyword 1" />
+              <input type="text" class="form-input" data-jd-keyword="2" maxlength="80" placeholder="Python" aria-label="JD keyword 2" />
+              <input type="text" class="form-input" data-jd-keyword="3" maxlength="80" placeholder="Dutch" aria-label="JD keyword 3" />
+              <input type="text" class="form-input" data-jd-keyword="4" maxlength="80" placeholder="Analytics" aria-label="JD keyword 4" />
+              <input type="text" class="form-input" data-jd-keyword="5" maxlength="80" placeholder="Excel" aria-label="JD keyword 5" />
+            </div>
+            <p class="field-hint" id="setting-keyword-count">0/5 keywords</p>
+
+            <div class="keyword-style-grid" role="radiogroup" aria-label="JD keyword marker style">
+              <label class="keyword-style-option">
+                <input type="radio" name="setting-keyword-style" value="tag" checked />
+                <span><strong>Tag</strong><small>KEY: SQL</small></span>
+              </label>
+              <label class="keyword-style-option">
+                <input type="radio" name="setting-keyword-style" value="bracket" />
+                <span><strong>Bracket</strong><small>[SQL]</small></span>
+              </label>
+              <label class="keyword-style-option">
+                <input type="radio" name="setting-keyword-style" value="spark" />
+                <span><strong>Spark</strong><small>✦ SQL</small></span>
+              </label>
+            </div>
+          </fieldset>
+        </section>
+
         <details class="advanced-settings">
           <summary>Advanced settings</summary>
 

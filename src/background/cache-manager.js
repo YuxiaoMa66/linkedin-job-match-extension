@@ -34,6 +34,9 @@ function buildSummary(jobId, jdData, matchData, cacheContext) {
     modelKey: cacheContext?.modelKey || metadata.modelKey || '',
     promptVersion: cacheContext?.promptVersion || metadata.promptVersion || 'v1',
     timing: metadata.timing || null,
+    // Keep a bounded local excerpt so title keyword preferences can be changed
+    // without re-running the model for every cached position.
+    jdText: typeof jdData?.description === 'string' ? jdData.description.slice(0, 50000) : '',
     kmEligible: sponsorship.kmEligible === true || sponsorship.indRegistered === true,
     sponsorshipLabel: sponsorship.kmEligible === true || sponsorship.indRegistered === true ? 'KM' : null,
     sponsorshipCompany: sponsorship.registryMatchedName || null,

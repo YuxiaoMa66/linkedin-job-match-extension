@@ -1,4 +1,10 @@
-import { Actions, DegradationTrigger, ErrorTypes } from '../shared/constants.js';
+import {
+  Actions,
+  DegradationTrigger,
+  ErrorTypes,
+  findKeywordMatches,
+  normalizeTitleDisplaySettings,
+} from '../shared/constants.js';
 import { loadConfig, saveConfig } from './config-manager.js';
 import { CacheManager } from './cache-manager.js';
 import { runAnalysis } from './match-engine.js';
@@ -219,8 +225,9 @@ function buildAnalysisPayload(result, jdData, extra = {}) {
   };
 }
 
-function buildCachedResponse(entry, includeResult = false) {
+function buildCachedResponse(entry, includeResult = false, titleDisplaySettings = null) {
   const metadata = entry.data?.metadata || {};
+  const normalizedTitleSettings = normalizeTitleDisplaySettings(titleDisplaySettings);
   const response = {
     jobId: entry.jobId,
     sourceType: entry.summary?.sourceType || 'linkedin',
@@ -244,6 +251,7 @@ function buildCachedResponse(entry, includeResult = false) {
     includeSponsorshipInScore: entry.summary?.includeSponsorshipInScore !== false && metadata.includeSponsorshipInScore !== false,
     weightsApplied: entry.summary?.weightsApplied || metadata.weightsApplied || {},
     timing: entry.summary?.timing || metadata.timing || null,
+    keywordMatches: findKeywordMatches(entry.summary?.jdText || '', normalizedTitleSettings.keywordList),
   };
 
   if (includeResult) {
@@ -749,6 +757,7 @@ async function handleGetCachedScores(payload, sendResponse) {
 
     const jobIds = Array.isArray(payload?.jobIds) ? payload.jobIds : [];
     const config = await loadConfig();
+    const titleDisplaySettings = normalizeTitleDisplaySettings(config.titleDisplaySettings);
     const cacheContext = await buildCacheContext(config, resume.hash, MATCH_PROMPT_VERSION);
     const entries = (await CacheManager.getEntries(jobIds, cacheContext))
       .filter(entry => !shouldIgnoreCachedEntry(entry));
@@ -756,7 +765,8 @@ async function handleGetCachedScores(payload, sendResponse) {
       ok: true,
       resumeAvailable: true,
       resumeHash: resume.hash,
-      entries: entries.map(entry => buildCachedResponse(entry, payload?.includeResult)),
+      displaySettings: titleDisplaySettings,
+      entries: entries.map(entry => buildCachedResponse(entry, payload?.includeResult, titleDisplaySettings)),
     });
   } catch (err) {
     sendResponse({ ok: false, error: err.message || 'Unable to read cached scores.' });
@@ -906,10 +916,11 @@ async function handleGetPositionLibrary(sendResponse) {
 
     if (resume?.hash) {
       const config = await loadConfig();
+      const titleDisplaySettings = normalizeTitleDisplaySettings(config.titleDisplaySettings);
       const cacheContext = await buildCacheContext(config, resume.hash, MATCH_PROMPT_VERSION);
       historyEntries = (await CacheManager.listEntries(cacheContext))
         .filter(entry => !shouldIgnoreCachedEntry(entry))
-        .map(entry => buildCachedResponse(entry, false));
+        .map(entry => buildCachedResponse(entry, false, titleDisplaySettings));
     }
 
     const partitionBySource = items => ({

@@ -10,7 +10,53 @@ const Actions = Object.freeze({
   JD_DATA: 'JD_DATA',
 });
 
-const CONTENT_SCRIPT_READY_KEY = '__ljmContentScriptReady__';
+const TITLE_SIGNAL_KEYS = Object.freeze({
+  KM: 'km',
+  JD_LANGUAGE: 'jdLanguage',
+  REQUIRED_LANGUAGE: 'requiredLanguage',
+  EXPERIENCE: 'experience',
+  KEYWORD: 'keyword',
+});
+
+const TITLE_SIGNAL_ORDER = Object.freeze([
+  TITLE_SIGNAL_KEYS.KM,
+  TITLE_SIGNAL_KEYS.JD_LANGUAGE,
+  TITLE_SIGNAL_KEYS.REQUIRED_LANGUAGE,
+  TITLE_SIGNAL_KEYS.EXPERIENCE,
+]);
+
+const TITLE_COLOR_SCHEMES = Object.freeze({
+  default: Object.freeze({
+    [TITLE_SIGNAL_KEYS.KM]: '#2563eb',
+    [TITLE_SIGNAL_KEYS.JD_LANGUAGE]: '#7c3aed',
+    [TITLE_SIGNAL_KEYS.REQUIRED_LANGUAGE]: '#0f766e',
+    [TITLE_SIGNAL_KEYS.EXPERIENCE]: '#b45309',
+    [TITLE_SIGNAL_KEYS.KEYWORD]: '#be123c',
+  }),
+  colorblind: Object.freeze({
+    [TITLE_SIGNAL_KEYS.KM]: '#0072b2',
+    [TITLE_SIGNAL_KEYS.JD_LANGUAGE]: '#d55e00',
+    [TITLE_SIGNAL_KEYS.REQUIRED_LANGUAGE]: '#009e73',
+    [TITLE_SIGNAL_KEYS.EXPERIENCE]: '#e69f00',
+    [TITLE_SIGNAL_KEYS.KEYWORD]: '#cc79a7',
+  }),
+});
+
+const DEFAULT_TITLE_DISPLAY_SETTINGS = Object.freeze({
+  colorScheme: 'default',
+  visibleSignals: Object.freeze({
+    [TITLE_SIGNAL_KEYS.KM]: true,
+    [TITLE_SIGNAL_KEYS.JD_LANGUAGE]: true,
+    [TITLE_SIGNAL_KEYS.REQUIRED_LANGUAGE]: true,
+    [TITLE_SIGNAL_KEYS.EXPERIENCE]: true,
+    [TITLE_SIGNAL_KEYS.KEYWORD]: true,
+  }),
+  customColors: Object.freeze({ ...TITLE_COLOR_SCHEMES.default }),
+  keywordList: Object.freeze([]),
+  keywordStyle: 'tag',
+});
+
+const CONTENT_SCRIPT_READY_KEY = '__ljmContentScriptReadyV030__';
 
 const LIST_ITEM_SELECTORS = [
   '.job-card-container',
@@ -77,6 +123,167 @@ const SELECTED_CARD_SELECTORS = [
 
 let lastExtractJobId = null;
 let lastKnownUrl = window.location.href;
+
+function normalizeHexColor(value, fallback = null) {
+  if (typeof value !== 'string') {
+    return fallback;
+  }
+
+  const candidate = value.trim().toLowerCase();
+  if (/^#[0-9a-f]{6}$/.test(candidate)) {
+    return candidate;
+  }
+  if (/^#[0-9a-f]{3}$/.test(candidate)) {
+    return `#${candidate.slice(1).split('').map(char => `${char}${char}`).join('')}`;
+  }
+  return fallback;
+}
+
+function normalizeKeywordList(value) {
+  const candidates = Array.isArray(value)
+    ? value
+    : typeof value === 'string'
+      ? value.split(/[\n,]/)
+      : [];
+  const seen = new Set();
+  const keywords = [];
+
+  for (const candidate of candidates) {
+    const keyword = String(candidate || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+    const key = keyword.toLocaleLowerCase();
+    if (!keyword || seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    keywords.push(keyword);
+    if (keywords.length >= 5) {
+      break;
+    }
+  }
+  return keywords;
+}
+
+function normalizeTitleDisplaySettings(settings) {
+  const source = settings && typeof settings === 'object' ? settings : {};
+  const colorScheme = source.colorScheme === 'colorblind' || source.colorScheme === 'custom'
+    ? source.colorScheme
+    : DEFAULT_TITLE_DISPLAY_SETTINGS.colorScheme;
+  const customColors = Object.fromEntries(
+    Object.keys(DEFAULT_TITLE_DISPLAY_SETTINGS.customColors).map(key => [
+      key,
+      normalizeHexColor(source.customColors?.[key], DEFAULT_TITLE_DISPLAY_SETTINGS.customColors[key]),
+    ]),
+  );
+
+  return {
+    colorScheme,
+    visibleSignals: Object.fromEntries(
+      Object.keys(DEFAULT_TITLE_DISPLAY_SETTINGS.visibleSignals).map(key => [
+        key,
+        source.visibleSignals?.[key] !== false,
+      ]),
+    ),
+    customColors,
+    keywordList: normalizeKeywordList(source.keywordList),
+    keywordStyle: ['tag', 'bracket', 'spark'].includes(source.keywordStyle)
+      ? source.keywordStyle
+      : DEFAULT_TITLE_DISPLAY_SETTINGS.keywordStyle,
+  };
+}
+
+function getTitleDisplayColors(settings) {
+  const normalized = normalizeTitleDisplaySettings(settings);
+  return normalized.colorScheme === 'custom'
+    ? { ...normalized.customColors }
+    : { ...TITLE_COLOR_SCHEMES[normalized.colorScheme] };
+}
+
+function getContrastTextColor(value) {
+  const hex = normalizeHexColor(value, '#000000').slice(1);
+  const luminance = getRelativeLuminance(hex);
+  const darkLuminance = getRelativeLuminance('251b12');
+  const whiteContrast = 1.05 / (luminance + 0.05);
+  const darkContrast = (luminance + 0.05) / (darkLuminance + 0.05);
+  return darkContrast > whiteContrast ? '#251b12' : '#ffffff';
+}
+
+function getRelativeLuminance(hex) {
+  const channels = [0, 2, 4].map(index => Number.parseInt(hex.slice(index, index + 2), 16) / 255);
+  const linear = channels.map(channel => (
+    channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4
+  ));
+  return (0.2126 * linear[0]) + (0.7152 * linear[1]) + (0.0722 * linear[2]);
+}
+
+function findKeywordMatches(text, keywordList) {
+  const normalizedText = String(text || '').replace(/\s+/g, ' ').toLocaleLowerCase();
+  if (!normalizedText) {
+    return [];
+  }
+  return normalizeKeywordList(keywordList).filter(keyword => (
+    normalizedText.includes(keyword.replace(/\s+/g, ' ').toLocaleLowerCase())
+  ));
+}
+
+function formatKeywordMarker(keyword, style) {
+  if (style === 'bracket') {
+    return `[${keyword}]`;
+  }
+  if (style === 'spark') {
+    return `✦ ${keyword}`;
+  }
+  return `KEY: ${keyword}`;
+}
+
+function buildTitleBadgeModels(entry, settings) {
+  const normalizedSettings = normalizeTitleDisplaySettings(settings);
+  const languageList = Array.isArray(entry?.requiredLanguages)
+    ? entry.requiredLanguages.filter(Boolean).slice(0, 3)
+    : [];
+  const models = [];
+  const values = {
+    [TITLE_SIGNAL_KEYS.KM]: entry?.kmEligible ? 'KM' : '',
+    [TITLE_SIGNAL_KEYS.JD_LANGUAGE]: entry?.jdLanguage && entry.jdLanguage !== 'Unknown'
+      ? `JD: ${entry.jdLanguage}`
+      : '',
+    [TITLE_SIGNAL_KEYS.REQUIRED_LANGUAGE]: languageList.length
+      ? `Lang: ${languageList.join(' / ')}`
+      : '',
+    [TITLE_SIGNAL_KEYS.EXPERIENCE]: entry?.requiredExperience ? `Exp: ${entry.requiredExperience}` : '',
+  };
+  const titles = {
+    [TITLE_SIGNAL_KEYS.KM]: 'KnowledgeMigrant sponsorship signal',
+    [TITLE_SIGNAL_KEYS.JD_LANGUAGE]: `Language detected in the JD: ${entry?.jdLanguage || 'Unknown'}`,
+    [TITLE_SIGNAL_KEYS.REQUIRED_LANGUAGE]: `Required language: ${languageList.join(' / ')}`,
+    [TITLE_SIGNAL_KEYS.EXPERIENCE]: `Experience requirement: ${entry?.requiredExperience || 'Not detected'}`,
+  };
+  const colors = getTitleDisplayColors(normalizedSettings);
+
+  for (const signalKey of TITLE_SIGNAL_ORDER) {
+    if (normalizedSettings.visibleSignals[signalKey] === false || !values[signalKey]) {
+      continue;
+    }
+    models.push({
+      signalKey,
+      label: values[signalKey],
+      title: titles[signalKey],
+      backgroundColor: colors[signalKey],
+    });
+  }
+
+  if (normalizedSettings.visibleSignals[TITLE_SIGNAL_KEYS.KEYWORD] !== false) {
+    for (const keyword of normalizeKeywordList(entry?.keywordMatches)) {
+      models.push({
+        signalKey: TITLE_SIGNAL_KEYS.KEYWORD,
+        label: formatKeywordMarker(keyword, normalizedSettings.keywordStyle),
+        title: `JD keyword matched: ${keyword}`,
+        backgroundColor: colors[TITLE_SIGNAL_KEYS.KEYWORD],
+      });
+    }
+  }
+
+  return models;
+}
 
 function bootstrap() {
   injectBadgeStyles();
@@ -341,35 +548,12 @@ function injectScoreBadge(jobId, score) {
   return false;
 }
 
-function injectSponsorBadge(jobId, sponsorshipLabel) {
-  if (!jobId || !sponsorshipLabel) {
-    return false;
-  }
-
-  const cards = [...document.querySelectorAll(LIST_ITEM_SELECTOR)];
-  for (const card of cards) {
-    if (getJobIdFromCard(card) !== jobId) {
-      continue;
-    }
-
-    const titleAnchor = card.querySelector('.job-card-list__title, .job-card-container__title, strong, h3, a.job-card-list__title')
-      || card;
-    let badge = card.querySelector('.ai-sponsor-badge');
-    if (!badge) {
-      badge = document.createElement('span');
-      badge.className = 'ai-sponsor-badge';
-      titleAnchor.appendChild(badge);
-    }
-
-    badge.dataset.jobId = jobId;
-    badge.textContent = sponsorshipLabel;
-    return true;
-  }
-
-  return false;
+function getCardTitleAnchor(card) {
+  return card.querySelector('.job-card-list__title, .job-card-container__title, strong, h3, a.job-card-list__title')
+    || card;
 }
 
-function injectMetaBadges(jobId, labels) {
+function injectMetaBadges(jobId, badgeModels) {
   if (!jobId) {
     return false;
   }
@@ -380,18 +564,22 @@ function injectMetaBadges(jobId, labels) {
       continue;
     }
 
-    const titleAnchor = card.querySelector('.job-card-list__title, .job-card-container__title, strong, h3, a.job-card-list__title')
-      || card;
-    titleAnchor.querySelectorAll('.ai-meta-badge').forEach(node => node.remove());
+    const titleAnchor = getCardTitleAnchor(card);
+    titleAnchor.querySelectorAll('.ai-meta-badge, .ai-sponsor-badge').forEach(node => node.remove());
 
-    for (const label of labels) {
-      if (!label) {
+    for (const model of badgeModels || []) {
+      if (!model?.label) {
         continue;
       }
       const badge = document.createElement('span');
-      badge.className = 'ai-meta-badge';
+      const color = normalizeHexColor(model.backgroundColor, '#6f5b49');
+      badge.className = `ai-meta-badge ai-meta-badge--${model.signalKey}`;
       badge.dataset.jobId = jobId;
-      badge.textContent = label;
+      badge.dataset.signalKey = model.signalKey;
+      badge.style.backgroundColor = color;
+      badge.style.color = getContrastTextColor(color);
+      badge.textContent = model.label;
+      badge.title = model.title || model.label;
       titleAnchor.appendChild(badge);
     }
     return true;
@@ -422,8 +610,8 @@ function injectDetailBadge(jobId, score) {
   badge.textContent = `${Math.round(score)}% match`;
 }
 
-function injectDetailSponsorBadge(jobId, sponsorshipLabel) {
-  if (!jobId || getCurrentJobId() !== jobId || !sponsorshipLabel) {
+function injectDetailMetaBadges(jobId, badgeModels) {
+  if (!jobId || getCurrentJobId() !== jobId) {
     return;
   }
 
@@ -432,19 +620,27 @@ function injectDetailSponsorBadge(jobId, sponsorshipLabel) {
     return;
   }
 
-  let badge = document.querySelector('.ai-detail-sponsor-badge');
-  if (!badge) {
-    badge = document.createElement('span');
-    badge.className = 'ai-detail-sponsor-badge';
+  document.querySelectorAll('.ai-detail-meta-badge, .ai-detail-sponsor-badge').forEach(node => node.remove());
+
+  for (const model of badgeModels || []) {
+    if (!model?.label) {
+      continue;
+    }
+    const color = normalizeHexColor(model.backgroundColor, '#6f5b49');
+    const badge = document.createElement('span');
+    badge.className = `ai-detail-meta-badge ai-detail-meta-badge--${model.signalKey}`;
+    badge.dataset.jobId = jobId;
+    badge.dataset.signalKey = model.signalKey;
+    badge.style.backgroundColor = color;
+    badge.style.color = getContrastTextColor(color);
+    badge.textContent = model.label;
+    badge.title = model.title || model.label;
     titleTarget.appendChild(badge);
   }
-
-  badge.dataset.jobId = jobId;
-  badge.textContent = sponsorshipLabel;
 }
 
 function clearInjectedScores() {
-  document.querySelectorAll('.ai-match-badge, .ai-match-detail-badge, .ai-sponsor-badge, .ai-detail-sponsor-badge, .ai-meta-badge').forEach(node => node.remove());
+  document.querySelectorAll('.ai-match-badge, .ai-match-detail-badge, .ai-sponsor-badge, .ai-detail-sponsor-badge, .ai-meta-badge, .ai-detail-meta-badge').forEach(node => node.remove());
 }
 
 function getBadgeColor(score) {
@@ -458,18 +654,20 @@ function getBadgeColor(score) {
 }
 
 function injectBadgeStyles() {
-  if (document.getElementById('ai-match-badge-styles')) {
+  document.getElementById('ai-match-badge-styles')?.remove();
+  if (document.getElementById('ai-match-badge-styles-v030')) {
     return;
   }
 
   const style = document.createElement('style');
-  style.id = 'ai-match-badge-styles';
+  style.id = 'ai-match-badge-styles-v030';
   style.textContent = `
     .ai-match-badge,
     .ai-match-detail-badge,
     .ai-sponsor-badge,
     .ai-detail-sponsor-badge,
-    .ai-meta-badge {
+    .ai-meta-badge,
+    .ai-detail-meta-badge {
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -482,6 +680,8 @@ function injectBadgeStyles() {
       line-height: 1.4;
       box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
       margin-left: 8px;
+      white-space: nowrap;
+      vertical-align: middle;
     }
 
     .ai-match-detail-badge {
@@ -496,16 +696,16 @@ function injectBadgeStyles() {
       padding: 1px 7px;
     }
 
-    .ai-meta-badge {
-      background: rgba(111, 91, 73, 0.14);
-      color: #6f5b49;
+    .ai-meta-badge,
+    .ai-detail-meta-badge {
       font-size: 10px;
       padding: 1px 7px;
       box-shadow: none;
     }
 
-    .ai-detail-sponsor-badge {
-      vertical-align: middle;
+    .ai-meta-badge--keyword,
+    .ai-detail-meta-badge--keyword {
+      letter-spacing: 0.01em;
     }
   `;
   document.head.appendChild(style);
@@ -539,8 +739,9 @@ async function refreshVisibleScores() {
       return;
     }
 
+    const displaySettings = normalizeTitleDisplaySettings(response.displaySettings);
     const scoreMap = new Map((response.entries || []).map(entry => [entry.jobId, entry]));
-    document.querySelectorAll('.ai-match-badge, .ai-sponsor-badge').forEach(badge => {
+    document.querySelectorAll('.ai-match-badge, .ai-sponsor-badge, .ai-meta-badge').forEach(badge => {
       if (!scoreMap.has(badge.dataset.jobId)) {
         badge.remove();
       }
@@ -551,31 +752,25 @@ async function refreshVisibleScores() {
       if (entry && typeof entry.score === 'number') {
         injectScoreBadge(job.jobId, entry.score);
       }
-      const metaLabels = [
-        entry?.jdLanguage && entry.jdLanguage !== 'Unknown' ? entry.jdLanguage : null,
-        entry?.requiredExperience || null,
-        ...(Array.isArray(entry?.requiredLanguages) ? entry.requiredLanguages.slice(0, 2) : []),
-      ].filter(Boolean);
-      if (metaLabels.length) {
-        injectMetaBadges(job.jobId, metaLabels);
-      } else {
-        document.querySelectorAll(`.ai-meta-badge[data-job-id="${job.jobId}"]`).forEach(node => node.remove());
-      }
-      if (entry?.kmEligible && entry?.sponsorshipLabel) {
-        injectSponsorBadge(job.jobId, entry.sponsorshipLabel);
-      } else {
-        document.querySelectorAll(`.ai-sponsor-badge[data-job-id="${job.jobId}"]`).forEach(node => node.remove());
-      }
+      injectMetaBadges(
+        job.jobId,
+        buildTitleBadgeModels(entry, displaySettings),
+      );
     });
 
     const currentEntry = currentJobId ? scoreMap.get(currentJobId) : null;
     if (currentEntry && typeof currentEntry.score === 'number') {
       injectDetailBadge(currentJobId, currentEntry.score);
-      if (currentEntry.kmEligible && currentEntry.sponsorshipLabel) {
-        injectDetailSponsorBadge(currentJobId, currentEntry.sponsorshipLabel);
+      const detailEntry = { ...currentEntry };
+      if (!detailEntry.keywordMatches?.length && displaySettings.keywordList.length) {
+        detailEntry.keywordMatches = findKeywordMatches(extractJDText().text, displaySettings.keywordList);
       }
+      injectDetailMetaBadges(
+        currentJobId,
+        buildTitleBadgeModels(detailEntry, displaySettings),
+      );
     } else {
-      document.querySelectorAll('.ai-match-detail-badge, .ai-detail-sponsor-badge').forEach(node => node.remove());
+      document.querySelectorAll('.ai-match-detail-badge, .ai-detail-sponsor-badge, .ai-detail-meta-badge').forEach(node => node.remove());
     }
   } catch {
     // Ignore background disconnects during extension reloads.
@@ -676,6 +871,7 @@ function setupMessageListener() {
       case Actions.INJECT_SCORE:
         injectScoreBadge(msg.payload?.jobId, msg.payload?.score);
         injectDetailBadge(msg.payload?.jobId, msg.payload?.score);
+        scheduleVisibleScoresRefresh();
         sendResponse({ success: true });
         return true;
 

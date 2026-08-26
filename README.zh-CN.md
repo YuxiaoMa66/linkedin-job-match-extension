@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/releases/tag/v0.2.0"><img alt="版本 v0.2.0" src="https://img.shields.io/badge/release-v0.2.0-9a4a30?style=flat-square" /></a>
+  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/feature/v0.3.0-title-signals"><img alt="预览 v0.3.0" src="https://img.shields.io/badge/preview-v0.3.0-9a4a30?style=flat-square" /></a>
   <img alt="Chrome Manifest V3" src="https://img.shields.io/badge/Chrome-MV3-9a4a30?style=flat-square" />
   <img alt="Vite 5" src="https://img.shields.io/badge/Vite-5-9a4a30?style=flat-square" />
   <a href="./LICENSE"><img alt="MIT 许可证" src="https://img.shields.io/badge/license-MIT-9a4a30?style=flat-square" /></a>
@@ -18,12 +18,15 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/releases/download/v0.2.0/linkedin-job-match-v0.2.0.zip"><strong>下载 v0.2.0</strong></a>
+  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/feature/v0.3.0-title-signals"><strong>测试 v0.3.0 支线</strong></a>
   &nbsp;&nbsp;|&nbsp;&nbsp;
   <a href="#安装方式">安装</a>
   &nbsp;&nbsp;|&nbsp;&nbsp;
   <a href="#配置方式">配置</a>
 </p>
+
+> [!NOTE]
+> `v0.3.0` 目前只发布在 `feature/v0.3.0-title-signals` 支线供测试，暂时没有合并到 `main`，也不会替换稳定版 `v0.2.0`。
 
 > [!IMPORTANT]
 > **当前版本的 LinkedIn 兼容性限制**
@@ -45,10 +48,34 @@
 | 能力 | 带来的变化 |
 | --- | --- |
 | 简历与岗位匹配 | 支持单岗位、LinkedIn 搜索结果列表和手动粘贴的其他来源岗位。 |
-| LinkedIn 页面内信号 | 在岗位附近显示匹配分数、JD 语言、经验要求、岗位语言和 sponsorship 标记。 |
+| LinkedIn 页面内信号 | 在岗位标题附近显示匹配分数，以及可配置的 JD 语言、要求语言、经验年限、sponsorship 和 JD 关键词胶囊框。 |
 | 可复用的判断历史 | 复用兼容缓存，区分 LinkedIn 与手动插入岗位历史，并收藏值得继续跟进的岗位。 |
 | 多模型服务商 | 支持 OpenAI、Anthropic、Gemini、OpenRouter、Poe 和自定义 OpenAI 兼容接口。 |
 | 荷兰 sponsorship 信息 | 使用内置 IND 衍生数据集检查组织名称，当前包含 12,927 个唯一名称。 |
+
+## v0.3.0 更新重点（测试支线）
+
+- 岗位标题中的 `JD 语言` 和 `要求语言` 改为两个独立胶囊框，`KM` 与 `经验年限` 也分别显示
+- 设置页新增 `默认`、`色盲友好` 和 `自定义颜色` 三套颜色方案
+- 自定义模式支持给每一种胶囊单独输入色号：KM、JD 语言、要求语言、经验年限和 JD 关键词
+- 新增勾选项，可分别控制四种基础标题信息是否显示
+- 新增最多 5 个 JD 关键词匹配，并提供 `Tag`、`Bracket`、`Spark` 三种标题标记样式
+- 已分析岗位会复用本地缓存的 JD 片段来重新计算关键词，不需要因为改颜色或关键词重新调用模型
+- 继续明确 LinkedIn 兼容边界：请使用经典版 Jobs 搜索，从 AI 搜索切回经典版后刷新页面
+
+### 标题胶囊颜色说明
+
+默认方案为每种标题信息使用一种颜色。匹配分数角标独立计算颜色，不属于下面的标题胶囊。
+
+| 标题胶囊 | 示例 | 默认颜色 | 色盲友好颜色 |
+| --- | --- | --- | --- |
+| KM sponsorship | `KM` | 蓝色 `#2563EB` | 蓝色 `#0072B2` |
+| JD 语言 | `JD: English` | 紫色 `#7C3AED` | 朱红色 `#D55E00` |
+| 要求语言 | `Lang: English / Dutch` | 青绿色 `#0F766E` | 绿色 `#009E73` |
+| 经验年限 | `Exp: 3y+` | 琥珀色 `#B45309` | 橙色 `#E69F00` |
+| JD 关键词 | `KEY: SQL` | 玫红色 `#BE123C` | 淡紫色 `#CC79A7` |
+
+进入设置页的 `Title signals` 区块，在下拉菜单中选择颜色方案。色盲友好方案使用更容易区分的色相；自定义模式可以为每一个胶囊分别输入十六进制色号。四种基础信息通过勾选框控制；关键词胶囊会在已分析 JD 匹配到关键词后显示。
 
 ## v0.2.0 更新重点
 
@@ -145,7 +172,18 @@
 - 岗位要求经验年限
 - 岗位要求语言
 
-### 7. 多 provider 模型支持
+### 7. 可配置标题胶囊与 JD 关键词
+
+进入 `Settings → Title signals` 后可以：
+
+- 选择默认或色盲友好颜色方案
+- 为每一种胶囊单独输入自定义色号
+- 分别勾选 KM、JD 语言、要求语言和经验年限
+- 输入最多 5 个 JD 关键词，并选择标题中的标记样式
+
+关键词扫描使用已分析岗位中保存的 JD 文本片段。保存设置后，当前 LinkedIn 页面会刷新标题角标。
+
+### 8. 多 provider 模型支持
 
 设置页支持为不同 provider 分别维护独立配置，例如：
 
@@ -269,7 +307,7 @@ npm run build
 
 ![Chrome 加载流程截图](./Screenshot/chrome%20procedure.png)
 
-### 方式二：从 GitHub Release 安装
+### 方式二：从 GitHub Release 安装（稳定版 v0.2.0）
 
 1. 下载 release 压缩包
 2. 解压文件
@@ -282,6 +320,8 @@ npm run build
 
 - 用户下载了 GitHub 仓库源码压缩包，然后直接加载源码根目录。
 - 这样虽然扩展界面可能可以打开，但如果没有加载 `dist/`，`PDF` 或 `DOCX` 简历解析就可能失败。
+
+如果要测试 `v0.3.0` 支线，请按方式一切换到 `feature/v0.3.0-title-signals` 后自行构建。测试完成前，这条支线不会创建正式 Release 资产。
 
 ## 配置方式
 
@@ -297,12 +337,15 @@ npm run build
 8. 选择 `Analysis mode`
 9. 选择是否 `I need employer sponsorship`
 10. 按需要开启 `Full custom scoring`
-11. 保存设置
+11. 在 `Title signals` 中选择需要显示的标题胶囊
+12. 如有需要，选择颜色方案、为每个胶囊输入自定义色号，并添加最多 5 个 JD 关键词
+13. 保存设置
 
 ## 隐私与数据处理
 
 - 简历内容保存在本地扩展存储中
 - API key 保存在本地扩展存储中
+- 已分析岗位缓存可能保存一段有上限的本地 JD 片段，用于在修改关键词后重新计算标题标记
 - 模型请求只会发送到用户当前选择的 provider
 - sponsorship 判断使用项目内置的本地 sponsor 数据集
 
