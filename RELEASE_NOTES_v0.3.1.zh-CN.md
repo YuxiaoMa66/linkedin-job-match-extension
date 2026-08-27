@@ -1,6 +1,6 @@
 # v0.3.1 —— 标题信号与 provider 起始模型
 
-`v0.3.1` 是位于 `feature/v0.3.1-title-signals` 的测试预览，暂时不会合并到 `main`。
+`v0.3.1` 最初作为 `feature/v0.3.1-title-signals` 的测试预览发布，现已合并进 `main`。
 
 ## 更新内容
 

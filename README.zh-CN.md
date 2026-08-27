@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/feature/v0.3.1-title-signals"><img alt="预览 v0.3.1" src="https://img.shields.io/badge/preview-v0.3.1-9a4a30?style=flat-square" /></a>
+  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/main"><img alt="v0.3.1" src="https://img.shields.io/badge/version-v0.3.1-9a4a30?style=flat-square" /></a>
   <img alt="Chrome Manifest V3" src="https://img.shields.io/badge/Chrome-MV3-9a4a30?style=flat-square" />
   <img alt="Vite 5" src="https://img.shields.io/badge/Vite-5-9a4a30?style=flat-square" />
   <a href="./LICENSE"><img alt="MIT 许可证" src="https://img.shields.io/badge/license-MIT-9a4a30?style=flat-square" /></a>
@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/feature/v0.3.1-title-signals"><strong>测试 v0.3.1 支线</strong></a>
+  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/main"><strong>使用 main 中的 v0.3.1</strong></a>
   &nbsp;&nbsp;|&nbsp;&nbsp;
   <a href="#安装方式">安装</a>
   &nbsp;&nbsp;|&nbsp;&nbsp;
@@ -26,7 +26,7 @@
 </p>
 
 > [!NOTE]
-> `v0.3.1` 目前只发布在 `feature/v0.3.1-title-signals` 支线供测试，暂时没有合并到 `main`，也不会替换稳定版 `v0.2.0`。
+> `v0.3.1` 现已合并进 `main`。原来的功能支线仍保留作为实现历史；当前 main 版本已经取代早期的 `v0.2.0`。
 
 > [!IMPORTANT]
 > **当前版本的 LinkedIn 兼容性限制**
@@ -36,6 +36,15 @@
 <p align="center">
   <img src="./docs/assets/classic-search-switch.png" alt="LinkedIn 的 Learn more 菜单，其中突出显示了 Switch back to classic search" width="100%" />
 </p>
+
+## 快速开始
+
+1. **第一次安装：** 下载构建好的 ZIP，解压后打开 `chrome://extensions/`，开启“开发者模式”，点击“加载已解压的扩展程序”，选择解压后的目录。
+2. **更新已有的 v0.1.2+ 版本：** 解压新 ZIP，把文件替换到原扩展的 `Location` 中，保持目录路径不变，然后在原卡片上点击“Reload”。
+3. **使用 LinkedIn 经典版 Jobs 搜索：** 如果出现 AI 搜索界面，请点击 `Learn more` → `Switch back to classic search`，然后刷新页面。
+4. 在侧边栏上传简历，打开岗位或岗位列表并开始分析。
+
+在同一目录更新可以保留扩展 ID，因此设置、简历、收藏/手动岗位和兼容历史都能继续使用。把新目录作为未打包扩展加载会生成独立的扩展 ID 和独立的 `chrome.storage.local`；详细原因和处理步骤见[安装方式](#安装方式)。
 
 ## 在投递前保留完整判断依据
 
@@ -53,7 +62,7 @@
 | 多模型服务商 | 支持 OpenAI、Anthropic、Gemini、OpenRouter、Poe 和自定义 OpenAI 兼容接口。 |
 | 荷兰 sponsorship 信息 | 使用内置 IND 衍生数据集检查组织名称，当前包含 12,927 个唯一名称。 |
 
-## v0.3.1 更新重点（测试支线）
+## v0.3.1 更新重点
 
 - 岗位标题中的 `JD 语言` 和 `要求语言` 改为两个独立胶囊框，`KM` 与 `经验年限` 也分别显示
 - 设置页新增 `默认`、`色盲友好` 和 `自定义颜色` 三套颜色方案
@@ -62,7 +71,7 @@
 - 新增最多 5 个 JD 关键词匹配，并提供 `Tag`、`Bracket`、`Spark` 三种标题标记样式
 - 关键词标记改为默认关闭；即使填入关键词，也要勾选“在岗位标题旁显示匹配关键词”后才会显示
 - 已分析岗位会复用本地缓存的 JD 片段来重新计算关键词，不需要因为改颜色或关键词重新调用模型
-- 选择 OpenAI、Anthropic 或 Gemini 时，会向可编辑的 `Saved models` 自动写入本预览版固定的低成本起始模型：`gpt-5-mini`、`claude-haiku-4-5-20251001` 或 `gemini-3.5-flash-lite`；用户仍可编辑列表或继续添加模型
+- 选择 OpenAI、Anthropic 或 Gemini 时，会向可编辑的 `Saved models` 自动写入固定的低成本起始模型：`gpt-5-mini`、`claude-haiku-4-5-20251001` 或 `gemini-3.5-flash-lite`；用户仍可编辑列表或继续添加模型
 - 可见的 `Saved models` 中不再显示旧的 `gpt-4o`，但用户自己添加的模型 ID 会保留
 - 从 v0.1.2 开始的历史匹配和 sponsor 快照会在切换 provider/模型后继续显示；之前从未分析的岗位仍保持未分析
 - 继续明确 LinkedIn 兼容边界：请使用经典版 Jobs 搜索，从 AI 搜索切回经典版后刷新页面
@@ -107,9 +116,9 @@
 
 ![使用 Spark 样式显示已命中的 JD 关键词](./docs/assets/v0.3.1-keyword-match.png)
 
-### 本预览版固定的 provider 起始模型
+### 固定的 provider 起始模型
 
-provider 切换不会动态获取模型。本预览版在选择 provider 时，会把下面的起始模型写入可编辑的 `Saved models`：
+provider 切换不会动态获取模型。本版本在选择 provider 时，会把下面的起始模型写入可编辑的 `Saved models`：
 
 | Provider | 起始模型 | 官方参考 |
 | --- | --- | --- |
@@ -349,7 +358,7 @@ npm run build
 
 ![Chrome 加载流程截图](./Screenshot/chrome%20procedure.png)
 
-### 方式二：从 GitHub Release 安装（稳定版 v0.2.0）
+### 方式二：从 GitHub Release 资产安装
 
 1. 下载 release 压缩包
 2. 解压文件
@@ -363,7 +372,7 @@ npm run build
 - 用户下载了 GitHub 仓库源码压缩包，然后直接加载源码根目录。
 - 这样虽然扩展界面可能可以打开，但如果没有加载 `dist/`，`PDF` 或 `DOCX` 简历解析就可能失败。
 
-如果要测试 `v0.3.1` 支线，请按方式一切换到 `feature/v0.3.1-title-signals` 后自行构建。测试完成前，这条支线不会创建正式 Release 资产。
+如果要从源码构建当前版本，请使用 `main` 支线并按方式一操作。GitHub Release 资产可以在源码合并后单独发布。
 
 ### 更新现有扩展，避免生成第二个插件
 
@@ -376,7 +385,7 @@ npm run build
 
 不要对新解压的目录再次点击“加载已解压的扩展程序”，也不要把它作为一个新的未打包扩展拖进去。Chrome 会为新目录分配不同的扩展 ID 和独立的 `chrome.storage.local`，看起来就会像安装了第二个插件。如果已经出现重复卡片，只删除重复的那一个，然后回到原目录更新。
 
-本预览版不会清除 `ljm_config`、`persistentResume`、`ljm_saved_positions_v1`、`ljm_manual_jobs_v1` 或 v3 匹配缓存。相同简历下，从 v0.1.2 开始的已分析结果仍可显示，包括旧记录中的 sponsor 和匹配快照；从未分析的岗位仍保持“未分析”。原有缓存的过期规则仍然有效。Chrome 不会把另一个扩展 ID 的本地存储自动开放给新扩展，因此换一个新目录本身无法安全迁移旧数据。
+本版本不会清除 `ljm_config`、`persistentResume`、`ljm_saved_positions_v1`、`ljm_manual_jobs_v1` 或 v3 匹配缓存。相同简历下，从 v0.1.2 开始的已分析结果仍可显示，包括旧记录中的 sponsor 和匹配快照；从未分析的岗位仍保持“未分析”。原有缓存的过期规则仍然有效。Chrome 不会把另一个扩展 ID 的本地存储自动开放给新扩展，因此换一个新目录本身无法安全迁移旧数据。
 
 ## 配置方式
 
@@ -387,7 +396,7 @@ npm run build
 3. 选择 provider
 4. 填写该 provider 对应的 `Base URL`
 5. 填写该 provider 对应的 `API key`
-6. 选择 `Active model`；选择 OpenAI、Anthropic 或 Gemini 时，`Saved models` 会自动写入本预览版固定的低成本起始模型
+6. 选择 `Active model`；选择 OpenAI、Anthropic 或 Gemini 时，`Saved models` 会自动写入本版本固定的低成本起始模型
 7. 按需要编辑 `Saved models`，或点击 `Add active model` 添加多个模型
 8. 选择 `Analysis mode`
 9. 选择是否 `I need employer sponsorship`

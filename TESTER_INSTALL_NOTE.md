@@ -1,6 +1,6 @@
-# Tester Install Note — v0.3.1 branch
+# Tester Install Note — v0.3.1
 
-This preview is on `feature/v0.3.1-title-signals`. It is not merged into `main`.
+`v0.3.1` is now merged into `main`. The feature branch remains available as implementation history.
 
 If resume upload fails, the most common reason is that the wrong folder was loaded into Chrome.
 
@@ -24,7 +24,7 @@ To preserve data from v0.1.2 onward, do not load the new extracted ZIP as anothe
 3. Replace the files inside the existing `Location` while keeping that folder path unchanged.
 4. Click `Reload` on the existing extension card.
 
-Loading the new folder with `Load unpacked` creates a separate extension ID and separate local storage. The preview keeps the existing config, resume, saved/manual positions, and v0.1.2+ cache snapshots when the original folder and ID are retained. It does not turn previously unanalysed jobs into analysed jobs.
+Loading the new folder with `Load unpacked` creates a separate extension ID and separate local storage. The release keeps the existing config, resume, saved/manual positions, and v0.1.2+ cache snapshots when the original folder and ID are retained. It does not turn previously unanalysed jobs into analysed jobs.
 
 ## v0.3.1 checks
 

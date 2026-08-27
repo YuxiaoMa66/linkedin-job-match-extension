@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/feature/v0.3.1-title-signals"><img alt="Preview v0.3.1" src="https://img.shields.io/badge/preview-v0.3.1-9a4a30?style=flat-square" /></a>
+  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/main"><img alt="v0.3.1" src="https://img.shields.io/badge/version-v0.3.1-9a4a30?style=flat-square" /></a>
   <img alt="Chrome Manifest V3" src="https://img.shields.io/badge/Chrome-MV3-9a4a30?style=flat-square" />
   <img alt="Vite 5" src="https://img.shields.io/badge/Vite-5-9a4a30?style=flat-square" />
   <a href="./LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-9a4a30?style=flat-square" /></a>
@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/feature/v0.3.1-title-signals"><strong>Test v0.3.1 branch</strong></a>
+  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/main"><strong>Use v0.3.1 on main</strong></a>
   &nbsp;&nbsp;|&nbsp;&nbsp;
   <a href="#installation">Installation</a>
   &nbsp;&nbsp;|&nbsp;&nbsp;
@@ -26,7 +26,7 @@
 </p>
 
 > [!NOTE]
-> `v0.3.1` is currently published on the `feature/v0.3.1-title-signals` branch for testing. It has not been merged into `main` and does not replace the stable `v0.2.0` release yet.
+> `v0.3.1` is now merged into `main`. The feature branch remains available as the implementation history; the current main version supersedes the earlier `v0.2.0` release.
 
 > [!IMPORTANT]
 > **Current LinkedIn compatibility**
@@ -36,6 +36,15 @@
 <p align="center">
   <img src="./docs/assets/classic-search-switch.png" alt="LinkedIn's Learn more menu with Switch back to classic search highlighted" width="100%" />
 </p>
+
+## Quick start
+
+1. **First install:** download a built ZIP, extract it, and load the extracted folder from `chrome://extensions/` → `Developer mode` → `Load unpacked`.
+2. **Update an existing v0.1.2+ installation:** extract the new ZIP, replace the files inside the original extension `Location`, keep the folder path unchanged, and click `Reload` on the original card.
+3. **Use LinkedIn Classic Jobs search:** if LinkedIn shows AI-powered search, choose `Learn more` → `Switch back to classic search`, then refresh the page.
+4. Upload your resume in the side panel, open a job or a visible job list, and run the analysis.
+
+The same-folder update keeps the extension ID and therefore preserves local settings, resume data, saved/manual positions, and compatible history. Loading a newly extracted folder creates a separate unpacked extension ID and separate `chrome.storage.local`; the detailed reason and recovery steps are in [Installation](#installation).
 
 ## Screen jobs with the context intact
 
@@ -53,7 +62,7 @@ Match scores and job signals stay inside LinkedIn while the side panel keeps the
 | Provider choice | Supports OpenAI, Anthropic, Gemini, OpenRouter, Poe, and custom OpenAI-compatible endpoints. |
 | Netherlands sponsorship context | Checks organisation names against a bundled IND-derived dataset containing 12,927 unique names. |
 
-## What's New In v0.3.1 (test branch)
+## What's New In v0.3.1
 
 - Added separate title capsules for `JD language` and `Required language`, with `KM` and `Experience` shown as independent signals
 - Added `Default`, `Color-blind friendly`, and `Custom colors` schemes in Settings
@@ -62,7 +71,7 @@ Match scores and job signals stay inside LinkedIn while the side panel keeps the
 - Added up to five JD keyword matches, with `Tag`, `Bracket`, and `Spark` marker styles
 - Keyword markers are now opt-in and start unchecked; adding keywords alone does not show them until `Show matched keywords beside the job title` is enabled
 - Existing analyzed jobs reuse their cached JD excerpt when keyword settings change, so the model does not need to run again
-- Selecting OpenAI, Anthropic, or Gemini seeds the editable `Saved models` list with a fixed low-cost starter model for this preview: `gpt-5-mini`, `claude-haiku-4-5-20251001`, or `gemini-3.5-flash-lite`. You can edit the list or add more models at any time
+- Selecting OpenAI, Anthropic, or Gemini seeds the editable `Saved models` list with a fixed low-cost starter model: `gpt-5-mini`, `claude-haiku-4-5-20251001`, or `gemini-3.5-flash-lite`. You can edit the list or add more models at any time
 - Legacy `gpt-4o` entries are removed from the visible Saved models list without removing user-added model IDs
 - v0.1.2+ cached match and sponsorship snapshots remain available after a provider/model change; jobs that were never analyzed remain unanalysed
 - Kept the LinkedIn compatibility boundary explicit: use classic Jobs search, switch back from AI-powered search, then refresh the page
@@ -107,9 +116,9 @@ The screenshot below shows the enabled-and-matched state: two of five keywords a
 
 ![Matched JD keyword shown with the Spark marker](./docs/assets/v0.3.1-keyword-match.png)
 
-### Fixed provider starter models in this preview
+### Fixed provider starter models
 
-The provider switch does not fetch models dynamically. This preview inserts the following starter value into the editable Saved models field when the provider is selected:
+The provider switch does not fetch models dynamically. This release inserts the following starter value into the editable Saved models field when the provider is selected:
 
 | Provider | Starter model | Official reference |
 | --- | --- | --- |
@@ -348,7 +357,7 @@ Reference:
 
 ![Chrome extension loading procedure screenshot](./Screenshot/chrome%20procedure.png)
 
-### Option B: Install from a GitHub release asset (stable v0.2.0)
+### Option B: Install from a GitHub release asset
 
 1. download the release archive
 2. extract it
@@ -362,7 +371,7 @@ Common mistake to avoid:
 - GitHub source archives are not the same as the built extension package.
 - If someone downloads the repository source and loads the root folder instead of `dist/`, resume parsing for `PDF` or `DOCX` files may fail.
 
-For the `v0.3.1` test branch, build from `feature/v0.3.1-title-signals` with Option A. The branch intentionally has no official release asset until testing is complete.
+To build the current version from source, use the `main` branch with Option A. A GitHub release asset may be published separately from the source merge.
 
 ### Update the existing extension without creating a second one
 
@@ -375,7 +384,7 @@ To keep the resume, settings, saved positions, manual jobs, and v0.1.2+ match hi
 
 Do not click `Load unpacked` on the newly extracted folder, and do not drag it in as a separate unpacked extension. Chrome will assign that folder a separate extension ID and separate `chrome.storage.local`, which makes it look like a new plugin. If a duplicate was already loaded, remove only the duplicate card and update the original folder in place.
 
-This preview does not clear `ljm_config`, `persistentResume`, `ljm_saved_positions_v1`, `ljm_manual_jobs_v1`, or the v3 match cache. v0.1.2 and later analyzed results remain displayable for the same resume, including older sponsor and match snapshots; jobs that were never analyzed remain unanalysed. Existing cache expiry rules still apply. Chrome cannot automatically expose storage from a different extension ID, so a new folder cannot safely migrate old data by itself.
+This release does not clear `ljm_config`, `persistentResume`, `ljm_saved_positions_v1`, `ljm_manual_jobs_v1`, or the v3 match cache. v0.1.2 and later analyzed results remain displayable for the same resume, including older sponsor and match snapshots; jobs that were never analyzed remain unanalysed. Existing cache expiry rules still apply. Chrome cannot automatically expose storage from a different extension ID, so a new folder cannot safely migrate old data by itself.
 
 ## Configuration
 
@@ -386,7 +395,7 @@ After opening the side panel:
 3. choose a provider
 4. enter the provider-specific `Base URL`
 5. enter the provider-specific `API key`
-6. choose an `Active model`; selecting OpenAI, Anthropic, or Gemini seeds the editable `Saved models` field with this preview's fixed low-cost starter
+6. choose an `Active model`; selecting OpenAI, Anthropic, or Gemini seeds the editable `Saved models` field with this release's fixed low-cost starter
 7. edit `Saved models` or add multiple models with `Add active model` when needed
 8. choose an `Analysis mode`
 9. choose whether `I need employer sponsorship`

@@ -1,6 +1,6 @@
 # v0.3.1 — title signals and provider starters
 
-`v0.3.1` is a testing preview on `feature/v0.3.1-title-signals`. It is intentionally not merged into `main`.
+`v0.3.1` was first published as a testing preview on `feature/v0.3.1-title-signals` and is now merged into `main`.
 
 ## Changes
 
