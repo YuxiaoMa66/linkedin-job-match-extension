@@ -46,11 +46,13 @@
 
 The same-folder update keeps the extension ID and therefore preserves local settings, resume data, saved/manual positions, and compatible history. Loading a newly extracted folder creates a separate unpacked extension ID and separate `chrome.storage.local`; the detailed reason and recovery steps are in [Installation](#installation).
 
-## Screen jobs with the context intact
+## See the decision surface
 
 Match scores and job signals stay inside LinkedIn while the side panel keeps the resume, evidence, history, saved positions, and re-analysis controls together.
 
-![LinkedIn search results with match badges and the LinkedIn Job Match side panel](./Screenshot/example%20v0.1.1.png)
+![LinkedIn classic search and job detail with current title signals](./docs/assets/v0.3.1-linkedin-title-capsules.png)
+
+Prefer a visual walkthrough? Open the [product homepage](./docs/index.html).
 
 ## What It Brings Together
 
@@ -64,17 +66,15 @@ Match scores and job signals stay inside LinkedIn while the side panel keeps the
 
 ## What's New In v0.3.1
 
-- Added separate title capsules for `JD language` and `Required language`, with `KM` and `Experience` shown as independent signals
-- Added `Default`, `Color-blind friendly`, and `Custom colors` schemes in Settings
-- Custom mode accepts a separate hex color for every capsule: KM, JD language, required language, experience years, and JD keyword
-- Added checkboxes for choosing which of the four core title signals are visible
-- Added up to five JD keyword matches, with `Tag`, `Bracket`, and `Spark` marker styles
-- Keyword markers are now opt-in and start unchecked; adding keywords alone does not show them until `Show matched keywords beside the job title` is enabled
-- Existing analyzed jobs reuse their cached JD excerpt when keyword settings change, so the model does not need to run again
-- Selecting OpenAI, Anthropic, or Gemini seeds the editable `Saved models` list with a fixed low-cost starter model: `gpt-5-mini`, `claude-haiku-4-5-20251001`, or `gemini-3.5-flash-lite`. You can edit the list or add more models at any time
-- Legacy `gpt-4o` entries are removed from the visible Saved models list without removing user-added model IDs
-- v0.1.2+ cached match and sponsorship snapshots remain available after a provider/model change; jobs that were never analyzed remain unanalysed
-- Kept the LinkedIn compatibility boundary explicit: use classic Jobs search, switch back from AI-powered search, then refresh the page
+- Added configurable title capsules for JD language, required language, KM sponsorship, and experience years
+- Added color presets, per-signal hex colors, and checkboxes so the title layer can stay useful without becoming noisy
+- Added opt-in JD keyword markers for up to five terms, with `Tag`, `Bracket`, and `Spark` styles; cached JD text is reused when settings change
+- Added fixed starter models for OpenAI, Anthropic, and Gemini while keeping `Saved models` editable; legacy `gpt-4o` is hidden without removing user-added model IDs
+- Preserved v0.1.2+ compatible match and sponsorship history, while keeping the classic LinkedIn search and refresh requirement explicit
+
+For the concise release record, see the [v0.3.1 release notes](./RELEASE_NOTES_v0.3.1.md).
+
+## v0.3.1 Reference
 
 ### Title capsule color legend
 
@@ -90,29 +90,13 @@ The default set uses one color per signal. The match-score badge is separate and
 
 In Settings → Title signals, choose the color set from the dropdown. The color-blind-friendly set is designed with stronger hue separation; Custom colors lets you enter a hex code for each capsule independently. The four core signals are controlled with checkboxes. Keyword markers are off by default and appear only after you enable them and an analyzed JD matches one of the five configured keywords.
 
-### v0.3.1 walkthrough screenshots
+### Product views
 
-These screenshots show the title signal controls, the optional keyword switch and the independent custom-color inputs:
-
-![Title signals beside LinkedIn job titles](./docs/assets/v0.3.1-title-signals-settings.png)
-
-![Optional JD keyword markers](./docs/assets/v0.3.1-keyword-markers.png)
+These two views show the product result without turning the changelog into a screenshot gallery:
 
 ![Independent custom capsule colors](./docs/assets/v0.3.1-custom-colors.png)
 
-### v0.3.1 UI display examples
-
-The same signals are rendered in the classic LinkedIn search/detail surface and remain available in the side-panel analysis, list mode, and Library history. Saving the settings applies the display configuration to the current page after refresh.
-
-![LinkedIn title capsules in classic search and detail](./docs/assets/v0.3.1-linkedin-title-capsules.png)
-
-![Title capsules in the current-job analysis panel](./docs/assets/v0.3.1-analysis-panel.png)
-
-![Title capsules in list mode](./docs/assets/v0.3.1-list-mode.png)
-
-![Title capsules in Library history](./docs/assets/v0.3.1-library.png)
-
-The screenshot below shows the enabled-and-matched state: two of five keywords are configured, `Spark` is selected, and a matching `BI` term appears as its own rose capsule beside each matching job title. Configured keywords that are not found in the captured JD do not appear.
+The optional keyword layer is opt-in. When it is enabled and the captured JD contains a configured term, the matching term becomes its own title capsule.
 
 ![Matched JD keyword shown with the Spark marker](./docs/assets/v0.3.1-keyword-match.png)
 
@@ -306,12 +290,6 @@ These screenshots show provider setup, model configuration, connection testing, 
 This shows the dedicated second-level detail view inside the side panel.
 
 ![Detailed analysis screenshot](./Screenshot/specific%20jd%20match%20detail.png)
-
-### Chrome loading procedure
-
-This can be used in the installation section to show where users should enable developer mode and load the unpacked extension.
-
-![Chrome extension loading procedure screenshot](./Screenshot/chrome%20procedure.png)
 
 ## Repository Structure
 

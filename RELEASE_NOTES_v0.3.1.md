@@ -1,32 +1,26 @@
-# v0.3.1 — title signals and provider starters
+# v0.3.1: title signals and provider starters
 
-`v0.3.1` was first published as a testing preview on `feature/v0.3.1-title-signals` and is now merged into `main`.
+`v0.3.1` is the current main release. This note records the release-level changes; the [README](./README.md) contains the full feature reference, color legend, configuration details, and screenshots.
 
-## Changes
+## Release focus
 
-- Keyword title markers are now opt-in and start unchecked.
-- Added a clear keyword enable switch alongside the five keyword inputs.
-- Added fixed low-cost starter models when selecting OpenAI, Anthropic, or Gemini:
-  - `gpt-5-mini`
-  - `claude-haiku-4-5-20251001`
-  - `gemini-3.5-flash-lite`
-- Saved models remain editable; users can replace the starter or add additional model IDs.
-- Added the supplied walkthrough screenshots to the README and product documentation.
-- Bumped the extension and package version to `0.3.1`.
-- Removed `gpt-4o` from the visible/default Saved models while preserving user-added model IDs; old stored `gpt-4o` values are normalized to the provider starter model.
-- Added v0.1.2+ compatible display reads for cached history when the provider, model, or scoring profile changes. Stored old match and sponsorship snapshots are not rewritten, and jobs without an analysis remain unanalysed.
+- Added configurable title capsules for JD language, required language, KM sponsorship, and experience years.
+- Added preset palettes, independent custom hex colors, and visibility checkboxes.
+- Added optional JD keyword markers for up to five terms, with `Tag`, `Bracket`, and `Spark` styles.
+- Added fixed starter models for OpenAI, Anthropic, and Gemini while keeping `Saved models` editable. Legacy `gpt-4o` is hidden without removing user-added model IDs.
+- Added v0.1.2+ compatible display reads for cached match and sponsorship history. Stored snapshots are not rewritten, and jobs without an analysis remain unanalysed.
 
-## Compatibility
+## Compatibility and upgrade
 
-The extension still analyzes LinkedIn's classic Jobs search interface only. Switch back from AI-powered search and refresh the page before testing.
+The extension analyzes LinkedIn's classic Jobs search interface only. If LinkedIn opens AI-powered search, choose `Learn more` → `Switch back to classic search`, then refresh the page.
 
-## Test build
+For an existing v0.1.2+ installation, replace the files inside the original Chrome extension `Location` and click `Reload` on the existing card. Loading the extracted ZIP as a new unpacked folder creates a separate extension ID and separate local storage.
+
+## Verification
 
 ```bash
 npm install
 npm run build
 ```
 
-Load the generated `dist/` directory from `chrome://extensions/`.
-
-For an update, keep the original extension folder and replace its files in place, then click `Reload` on the existing card. Loading a newly extracted folder creates a different extension ID and cannot automatically access the original `chrome.storage.local` data.
+The release package is built from `main` and should be loaded from its extracted extension folder, not from the repository source root.

@@ -829,6 +829,19 @@ h2 {
   font-size: 0.68rem;
 }
 
+.provider-compatibility {
+  grid-column: 1 / -1;
+  margin: -8px 0 0;
+  color: #d7c9b9;
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+
+.provider-compatibility strong {
+  color: #f6dfca;
+  font-weight: 800;
+}
+
 .ui-showcase {
   margin-top: 80px;
 }
