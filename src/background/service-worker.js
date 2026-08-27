@@ -299,7 +299,7 @@ async function maybeBroadcastCachedResult(jdData) {
 
   const config = await loadConfig();
   const cacheContext = await buildCacheContext(config, resume.hash, MATCH_PROMPT_VERSION);
-  const cachedEntry = await CacheManager.getEntry(jdData.jobId, cacheContext);
+  const cachedEntry = await CacheManager.getEntry(jdData.jobId, cacheContext, { allowCompatible: true });
   if (!cachedEntry || shouldIgnoreCachedEntry(cachedEntry)) {
     return;
   }
@@ -879,7 +879,7 @@ async function handleDeleteHistoryEntry(payload, sendResponse) {
 
     const config = await loadConfig();
     const cacheContext = await buildCacheContext(config, resume.hash, MATCH_PROMPT_VERSION);
-    const deleted = await CacheManager.deleteEntry(jobId, cacheContext);
+    const deleted = await CacheManager.deleteEntry(jobId, cacheContext, { allowCompatible: true });
     sendResponse({ ok: true, data: { deleted } });
   } catch (err) {
     sendResponse({ ok: false, error: err.message || 'Failed to delete the history entry.' });

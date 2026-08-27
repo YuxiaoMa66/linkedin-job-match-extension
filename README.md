@@ -63,6 +63,8 @@ Match scores and job signals stay inside LinkedIn while the side panel keeps the
 - Keyword markers are now opt-in and start unchecked; adding keywords alone does not show them until `Show matched keywords beside the job title` is enabled
 - Existing analyzed jobs reuse their cached JD excerpt when keyword settings change, so the model does not need to run again
 - Selecting OpenAI, Anthropic, or Gemini seeds the editable `Saved models` list with a fixed low-cost starter model for this preview: `gpt-5-mini`, `claude-haiku-4-5-20251001`, or `gemini-3.5-flash-lite`. You can edit the list or add more models at any time
+- Legacy `gpt-4o` entries are removed from the visible Saved models list without removing user-added model IDs
+- v0.1.2+ cached match and sponsorship snapshots remain available after a provider/model change; jobs that were never analyzed remain unanalysed
 - Kept the LinkedIn compatibility boundary explicit: use classic Jobs search, switch back from AI-powered search, then refresh the page
 
 ### Title capsule color legend
@@ -361,6 +363,19 @@ Common mistake to avoid:
 - If someone downloads the repository source and loads the root folder instead of `dist/`, resume parsing for `PDF` or `DOCX` files may fail.
 
 For the `v0.3.1` test branch, build from `feature/v0.3.1-title-signals` with Option A. The branch intentionally has no official release asset until testing is complete.
+
+### Update the existing extension without creating a second one
+
+To keep the resume, settings, saved positions, manual jobs, and v0.1.2+ match history, update the extension in the same folder that Chrome already knows:
+
+1. Open `chrome://extensions/`, open the existing extension's `Details`, and note its `Location`.
+2. Extract the new ZIP into a temporary folder.
+3. Copy the extracted package contents into that existing `Location`, replacing the old files. Keep the original parent folder and path unchanged.
+4. Return to `chrome://extensions/` and click `Reload` on the existing extension card.
+
+Do not click `Load unpacked` on the newly extracted folder, and do not drag it in as a separate unpacked extension. Chrome will assign that folder a separate extension ID and separate `chrome.storage.local`, which makes it look like a new plugin. If a duplicate was already loaded, remove only the duplicate card and update the original folder in place.
+
+This preview does not clear `ljm_config`, `persistentResume`, `ljm_saved_positions_v1`, `ljm_manual_jobs_v1`, or the v3 match cache. v0.1.2 and later analyzed results remain displayable for the same resume, including older sponsor and match snapshots; jobs that were never analyzed remain unanalysed. Existing cache expiry rules still apply. Chrome cannot automatically expose storage from a different extension ID, so a new folder cannot safely migrate old data by itself.
 
 ## Configuration
 

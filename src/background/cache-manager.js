@@ -48,6 +48,91 @@ function isExpired(timestamp) {
   return !timestamp || (Date.now() - timestamp > ONE_MONTH_MS);
 }
 
+function isUsableEntry(value) {
+  return value?.version === CURRENT_CACHE_VERSION && !isExpired(value.timestamp);
+}
+
+function getEntryJobId(value) {
+  return value?.jobId || value?.summary?.jobId || '';
+}
+
+function getEntryTimestamp(value) {
+  const analyzedAt = Date.parse(value?.summary?.analyzedAt || '');
+  return Number.isFinite(analyzedAt) ? analyzedAt : Number(value?.timestamp) || 0;
+}
+
+function choosePreferredRecord(records, exactKey = '') {
+  const exactRecord = records.find(record => record.key === exactKey);
+  if (exactRecord) {
+    return exactRecord;
+  }
+
+  return records
+    .slice()
+    .sort((a, b) => getEntryTimestamp(b.value) - getEntryTimestamp(a.value))[0] || null;
+}
+
+/**
+ * Read v0.1.2+ cache records for the same resume and job, even when the
+ * current provider/model/scoring profile has changed. The stored snapshot is
+ * returned untouched so display-only upgrades cannot rewrite old results.
+ */
+async function readCompatibleEntryRecords(jobIds, cacheContext) {
+  if (!cacheContext?.resumeHash || !cacheContext?.scoringProfileHash || !cacheContext?.modelKeyHash) {
+    return [];
+  }
+
+  const requestedJobIds = Array.isArray(jobIds)
+    ? [...new Set(jobIds.filter(Boolean))]
+    : null;
+  const requestedSet = requestedJobIds ? new Set(requestedJobIds) : null;
+  const allStorage = await chrome.storage.local.get(null);
+  const grouped = new Map();
+  const keysToRemove = [];
+
+  for (const [key, value] of Object.entries(allStorage)) {
+    if (!key.startsWith(CACHE_PREFIX)) {
+      continue;
+    }
+
+    const candidateJobId = getEntryJobId(value);
+    if (value?.resumeHash !== cacheContext.resumeHash
+      || !candidateJobId
+      || (requestedSet && !requestedSet.has(candidateJobId))) {
+      continue;
+    }
+
+    if (!isUsableEntry(value)) {
+      keysToRemove.push(key);
+      continue;
+    }
+
+    const records = grouped.get(candidateJobId) || [];
+    records.push({ key, value });
+    grouped.set(candidateJobId, records);
+  }
+
+  if (keysToRemove.length) {
+    await chrome.storage.local.remove(keysToRemove);
+  }
+
+  if (requestedJobIds) {
+    return requestedJobIds
+      .map(jobId => choosePreferredRecord(
+        grouped.get(jobId) || [],
+        buildCacheKey(jobId, cacheContext),
+      ))
+      .filter(Boolean);
+  }
+
+  return [...grouped.values()]
+    .map(records => {
+      const jobId = getEntryJobId(records[0]?.value);
+      return choosePreferredRecord(records, buildCacheKey(jobId, cacheContext));
+    })
+    .filter(Boolean);
+}
+
 export const CacheManager = {
   async saveResult(jobId, cacheContext, jdData, matchData) {
     if (!jobId || !cacheContext?.resumeHash || !cacheContext?.scoringProfileHash || !cacheContext?.modelKeyHash || !matchData) {
@@ -70,7 +155,7 @@ export const CacheManager = {
     });
   },
 
-  async getEntry(jobId, cacheContext) {
+  async getEntry(jobId, cacheContext, options = {}) {
     if (!jobId || !cacheContext?.resumeHash || !cacheContext?.scoringProfileHash || !cacheContext?.modelKeyHash) {
       return null;
     }
@@ -80,15 +165,23 @@ export const CacheManager = {
     const payload = result[key];
 
     if (!payload) {
+      if (options.allowCompatible) {
+        return (await readCompatibleEntryRecords([jobId], cacheContext))[0]?.value || null;
+      }
       return null;
     }
 
-    if (isExpired(payload.timestamp)) {
+    if (!isUsableEntry(payload)) {
       await chrome.storage.local.remove(key);
-      return null;
+    } else {
+      return payload;
     }
 
-    return payload;
+    if (options.allowCompatible) {
+      return (await readCompatibleEntryRecords([jobId], cacheContext))[0]?.value || null;
+    }
+
+    return null;
   },
 
   async getResult(jobId, cacheContext) {
@@ -96,12 +189,26 @@ export const CacheManager = {
     return entry?.data || null;
   },
 
-  async deleteEntry(jobId, cacheContext) {
+  async deleteEntry(jobId, cacheContext, options = {}) {
     if (!jobId || !cacheContext?.resumeHash || !cacheContext?.scoringProfileHash || !cacheContext?.modelKeyHash) {
       return false;
     }
 
     const key = buildCacheKey(jobId, cacheContext);
+    const exact = await chrome.storage.local.get(key);
+    if (exact[key]) {
+      await chrome.storage.local.remove(key);
+      return true;
+    }
+
+    if (options.allowCompatible) {
+      const compatibleRecord = (await readCompatibleEntryRecords([jobId], cacheContext))[0];
+      if (compatibleRecord) {
+        await chrome.storage.local.remove(compatibleRecord.key);
+        return true;
+      }
+    }
+
     await chrome.storage.local.remove(key);
     return true;
   },
@@ -111,33 +218,8 @@ export const CacheManager = {
       return [];
     }
 
-    const uniqueJobIds = [...new Set(jobIds.filter(Boolean))];
-    const keys = uniqueJobIds.map(jobId => buildCacheKey(jobId, cacheContext));
-    const storage = await chrome.storage.local.get(keys);
-    const expiredKeys = [];
-    const entries = [];
-
-    for (const jobId of uniqueJobIds) {
-      const key = buildCacheKey(jobId, cacheContext);
-      const payload = storage[key];
-
-      if (!payload) {
-        continue;
-      }
-
-      if (isExpired(payload.timestamp)) {
-        expiredKeys.push(key);
-        continue;
-      }
-
-      entries.push(payload);
-    }
-
-    if (expiredKeys.length) {
-      await chrome.storage.local.remove(expiredKeys);
-    }
-
-    return entries;
+    const records = await readCompatibleEntryRecords(jobIds, cacheContext);
+    return records.map(record => record.value);
   },
 
   async cleanupExpired() {
@@ -166,37 +248,17 @@ export const CacheManager = {
       return [];
     }
 
-    const allStorage = await chrome.storage.local.get(null);
+    const records = await readCompatibleEntryRecords(null, cacheContext);
     const entries = [];
-    const keysToRemove = [];
     const sourceTypeFilter = options.sourceType || null;
 
-    for (const [key, value] of Object.entries(allStorage)) {
-      if (!key.startsWith(CACHE_PREFIX)) {
-        continue;
-      }
-
-      if (value?.resumeHash !== cacheContext.resumeHash
-        || value?.scoringProfileHash !== cacheContext.scoringProfileHash
-        || value?.modelKeyHash !== cacheContext.modelKeyHash) {
-        continue;
-      }
-
-      if (isExpired(value?.timestamp) || value?.version !== CURRENT_CACHE_VERSION) {
-        keysToRemove.push(key);
-        continue;
-      }
-
-      const entrySourceType = value?.summary?.sourceType || 'linkedin';
+    for (const record of records) {
+      const entrySourceType = record.value?.summary?.sourceType || 'linkedin';
       if (sourceTypeFilter && entrySourceType !== sourceTypeFilter) {
         continue;
       }
 
-      entries.push(value);
-    }
-
-    if (keysToRemove.length) {
-      await chrome.storage.local.remove(keysToRemove);
+      entries.push(record.value);
     }
 
     entries.sort((a, b) => new Date(b?.summary?.analyzedAt || 0) - new Date(a?.summary?.analyzedAt || 0));

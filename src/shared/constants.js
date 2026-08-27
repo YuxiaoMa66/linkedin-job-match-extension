@@ -187,6 +187,10 @@ export const PROVIDER_RECOMMENDED_MODELS = Object.freeze({
   gemini: 'gemini-3.5-flash-lite',
 });
 
+// Kept only for upgrade cleanup. This is never offered as a new default or
+// inserted into a provider's Saved models list.
+export const LEGACY_MODEL_IDS = Object.freeze(['gpt-4o']);
+
 export const DEFAULT_TITLE_DISPLAY_SETTINGS = Object.freeze({
   colorScheme: 'default',
   visibleSignals: Object.freeze({
@@ -216,6 +220,41 @@ export function normalizeHexColor(value, fallback = null) {
   }
 
   return fallback;
+}
+
+export function normalizeModelList(value, activeModel = '', fallbackModel = '') {
+  const candidates = Array.isArray(value)
+    ? value
+    : typeof value === 'string'
+      ? value.split(/[\n,]/)
+      : [];
+  const legacyIds = new Set(LEGACY_MODEL_IDS.map(modelId => modelId.toLocaleLowerCase()));
+  const normalize = candidate => typeof candidate === 'string' ? candidate.trim() : '';
+  const isLegacy = modelId => legacyIds.has(modelId.toLocaleLowerCase());
+  const models = [];
+
+  for (const candidate of candidates) {
+    const modelId = normalize(candidate);
+    if (!modelId || isLegacy(modelId) || models.includes(modelId)) {
+      continue;
+    }
+    models.push(modelId);
+  }
+
+  const normalizedActiveModel = normalize(activeModel);
+  const normalizedFallbackModel = normalize(fallbackModel);
+  const preferredModel = normalizedActiveModel && !isLegacy(normalizedActiveModel)
+    ? normalizedActiveModel
+    : normalizedFallbackModel;
+  if (preferredModel && !isLegacy(preferredModel) && !models.includes(preferredModel)) {
+    models.unshift(preferredModel);
+  }
+
+  if (!models.length && normalizedFallbackModel && !isLegacy(normalizedFallbackModel)) {
+    models.push(normalizedFallbackModel);
+  }
+
+  return models;
 }
 
 export function normalizeKeywordList(value) {
@@ -390,8 +429,8 @@ export const DEFAULT_MODEL_CONFIG = Object.freeze({
   provider: 'openai',
   baseUrl: 'https://api.openai.com',
   apiKey: '',
-  modelId: 'gpt-4o',
-  modelIds: ['gpt-4o'],
+  modelId: PROVIDER_RECOMMENDED_MODELS.openai,
+  modelIds: [PROVIDER_RECOMMENDED_MODELS.openai],
   maxTokens: 4096,
   temperature: 0.1,
   timeoutMs: 60000,

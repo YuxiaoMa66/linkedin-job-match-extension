@@ -13,6 +13,8 @@
 - Saved models remain editable; users can replace the starter or add additional model IDs.
 - Added the supplied walkthrough screenshots to the README and product documentation.
 - Bumped the extension and package version to `0.3.1`.
+- Removed `gpt-4o` from the visible/default Saved models while preserving user-added model IDs; old stored `gpt-4o` values are normalized to the provider starter model.
+- Added v0.1.2+ compatible display reads for cached history when the provider, model, or scoring profile changes. Stored old match and sponsorship snapshots are not rewritten, and jobs without an analysis remain unanalysed.
 
 ## Compatibility
 
@@ -26,3 +28,5 @@ npm run build
 ```
 
 Load the generated `dist/` directory from `chrome://extensions/`.
+
+For an update, keep the original extension folder and replace its files in place, then click `Reload` on the existing card. Loading a newly extracted folder creates a different extension ID and cannot automatically access the original `chrome.storage.local` data.

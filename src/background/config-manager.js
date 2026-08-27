@@ -4,6 +4,8 @@
 import {
   DEFAULT_MODEL_CONFIG,
   PROVIDERS,
+  PROVIDER_RECOMMENDED_MODELS,
+  normalizeModelList,
   normalizeTitleDisplaySettings,
 } from '../shared/constants.js';
 
@@ -19,7 +21,7 @@ export async function loadConfig() {
     const saved = result[STORAGE_KEY];
     if (saved && typeof saved === 'object') {
       const merged = { ...DEFAULT_MODEL_CONFIG, ...saved };
-      const providerProfiles = normalizeProviderProfiles(saved.providerProfiles);
+      const providerProfiles = normalizeProviderProfiles(saved.providerProfiles, merged);
       const activeProfile = getProviderProfile(merged.provider, providerProfiles, merged);
 
       return {
@@ -46,7 +48,7 @@ export async function loadConfig() {
   }
   return {
     ...DEFAULT_MODEL_CONFIG,
-    providerProfiles: normalizeProviderProfiles(DEFAULT_MODEL_CONFIG.providerProfiles),
+    providerProfiles: normalizeProviderProfiles(DEFAULT_MODEL_CONFIG.providerProfiles, DEFAULT_MODEL_CONFIG),
     titleDisplaySettings: normalizeTitleDisplaySettings(DEFAULT_MODEL_CONFIG.titleDisplaySettings),
   };
 }
@@ -58,15 +60,18 @@ export async function loadConfig() {
 export async function saveConfig(config) {
   try {
     const merged = { ...DEFAULT_MODEL_CONFIG, ...config };
-    const providerProfiles = normalizeProviderProfiles(merged.providerProfiles);
+    const providerProfiles = normalizeProviderProfiles(merged.providerProfiles, merged);
     if (merged.provider) {
+      const fallbackModel = getProviderFallbackModel(merged.provider);
+      const modelIds = normalizeModelList(merged.modelIds, merged.modelId, fallbackModel);
+      const modelId = modelIds[0] || fallbackModel;
       providerProfiles[merged.provider] = {
         ...getDefaultProfile(merged.provider),
         ...providerProfiles[merged.provider],
         baseUrl: merged.baseUrl,
         apiKey: merged.apiKey,
-        modelId: merged.modelId,
-        modelIds: Array.isArray(merged.modelIds) ? merged.modelIds : [],
+        modelId,
+        modelIds,
         maxTokens: merged.maxTokens,
         temperature: merged.temperature,
         timeoutMs: merged.timeoutMs,
@@ -77,6 +82,12 @@ export async function saveConfig(config) {
     await chrome.storage.local.set({
       [STORAGE_KEY]: {
         ...merged,
+        modelId: merged.provider
+          ? providerProfiles[merged.provider].modelId
+          : merged.modelId,
+        modelIds: merged.provider
+          ? providerProfiles[merged.provider].modelIds
+          : merged.modelIds,
         providerProfiles,
         analysisPreset: merged.analysisPreset || DEFAULT_MODEL_CONFIG.analysisPreset,
         promptTuningMode: merged.promptTuningMode || merged.analysisPreset || DEFAULT_MODEL_CONFIG.promptTuningMode,
@@ -108,13 +119,34 @@ export async function isConfigured() {
   return !!(config.apiKey && config.apiKey.trim());
 }
 
-function normalizeProviderProfiles(profiles) {
+function normalizeProviderProfiles(profiles, fallbackConfig = {}) {
   const normalized = {};
+  const activeProvider = fallbackConfig.provider || DEFAULT_MODEL_CONFIG.provider;
 
   for (const provider of PROVIDERS) {
+    const existing = profiles?.[provider.id] || {};
+    const defaultProfile = getDefaultProfile(provider.id);
+    const fallbackModel = getProviderFallbackModel(provider.id);
+    const isActiveProvider = provider.id === activeProvider;
+    const sourceModelIds = existing.modelIds !== undefined
+      ? existing.modelIds
+      : (isActiveProvider ? fallbackConfig.modelIds : []);
+    const sourceActiveModel = existing.modelId !== undefined
+      ? existing.modelId
+      : (isActiveProvider ? fallbackConfig.modelId : '');
+    const modelIds = normalizeModelList(sourceModelIds, sourceActiveModel, fallbackModel);
+
     normalized[provider.id] = {
-      ...getDefaultProfile(provider.id),
-      ...(profiles?.[provider.id] || {}),
+      ...defaultProfile,
+      ...existing,
+      baseUrl: existing.baseUrl || (isActiveProvider ? fallbackConfig.baseUrl : '') || defaultProfile.baseUrl,
+      apiKey: existing.apiKey ?? (isActiveProvider ? fallbackConfig.apiKey : '') ?? '',
+      modelId: modelIds[0] || fallbackModel,
+      modelIds,
+      maxTokens: existing.maxTokens ?? (isActiveProvider ? fallbackConfig.maxTokens : null) ?? defaultProfile.maxTokens,
+      temperature: existing.temperature ?? (isActiveProvider ? fallbackConfig.temperature : null) ?? defaultProfile.temperature,
+      timeoutMs: existing.timeoutMs ?? (isActiveProvider ? fallbackConfig.timeoutMs : null) ?? defaultProfile.timeoutMs,
+      maxRetries: existing.maxRetries ?? (isActiveProvider ? fallbackConfig.maxRetries : null) ?? defaultProfile.maxRetries,
     };
   }
 
@@ -122,22 +154,33 @@ function normalizeProviderProfiles(profiles) {
 }
 
 function getProviderProfile(providerId, providerProfiles, fallbackConfig) {
+  const fallbackModel = getProviderFallbackModel(providerId);
+  const profile = providerProfiles?.[providerId] || getDefaultProfile(providerId);
+  const modelIds = normalizeModelList(profile.modelIds, profile.modelId, fallbackModel);
+
   return {
     ...getDefaultProfile(providerId),
-    ...(providerProfiles?.[providerId] || {}),
-    baseUrl: providerProfiles?.[providerId]?.baseUrl
+    ...profile,
+    modelId: modelIds[0] || fallbackModel,
+    modelIds,
+    baseUrl: profile.baseUrl
       || fallbackConfig.baseUrl
       || getDefaultProfile(providerId).baseUrl,
   };
 }
 
+function getProviderFallbackModel(providerId) {
+  return PROVIDER_RECOMMENDED_MODELS[providerId] || DEFAULT_MODEL_CONFIG.modelId;
+}
+
 function getDefaultProfile(providerId) {
   const provider = PROVIDERS.find(item => item.id === providerId);
+  const fallbackModel = getProviderFallbackModel(providerId);
   return {
     baseUrl: provider?.baseUrl || '',
     apiKey: '',
-    modelId: DEFAULT_MODEL_CONFIG.modelId,
-    modelIds: [...DEFAULT_MODEL_CONFIG.modelIds],
+    modelId: fallbackModel,
+    modelIds: [fallbackModel],
     maxTokens: DEFAULT_MODEL_CONFIG.maxTokens,
     temperature: DEFAULT_MODEL_CONFIG.temperature,
     timeoutMs: DEFAULT_MODEL_CONFIG.timeoutMs,

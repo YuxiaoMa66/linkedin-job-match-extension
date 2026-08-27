@@ -15,6 +15,17 @@ Please do **not** load the repository source root directly.
 
 If the source root is loaded instead of `dist/`, the extension UI may still open, but resume upload for `PDF` or `DOCX` files can fail because packaged parser files are missing.
 
+## Updating the existing installation
+
+To preserve data from v0.1.2 onward, do not load the new extracted ZIP as another folder:
+
+1. In `chrome://extensions/`, open the existing extension's `Details` and note its `Location`.
+2. Extract the new ZIP to a temporary folder.
+3. Replace the files inside the existing `Location` while keeping that folder path unchanged.
+4. Click `Reload` on the existing extension card.
+
+Loading the new folder with `Load unpacked` creates a separate extension ID and separate local storage. The preview keeps the existing config, resume, saved/manual positions, and v0.1.2+ cache snapshots when the original folder and ID are retained. It does not turn previously unanalysed jobs into analysed jobs.
+
 ## v0.3.1 checks
 
 1. Open the side panel's `Settings` tab and find `Title signals`.

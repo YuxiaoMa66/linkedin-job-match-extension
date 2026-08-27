@@ -11,6 +11,7 @@
   getTitleDisplayColors,
   normalizeHexColor,
   normalizeKeywordList,
+  normalizeModelList,
   normalizeTitleDisplaySettings,
 } from '../shared/constants.js';
 import {
@@ -1182,13 +1183,15 @@ async function saveConfig() {
   const analysisSettings = readAnalysisSettingsForm();
   const activeProvider = els.settingProvider.value;
   const activeProfile = currentConfig.providerProfiles?.[activeProvider] || readProviderForm();
-  const modelIds = normalizeModelList(activeProfile.modelIds, activeProfile.modelId);
+  const fallbackModel = PROVIDER_RECOMMENDED_MODELS[activeProvider] || DEFAULT_PROVIDER_MODEL();
+  const modelIds = normalizeModelList(activeProfile.modelIds, activeProfile.modelId, fallbackModel);
+  const modelId = modelIds[0] || fallbackModel;
   const payload = {
     ...currentConfig,
     provider: activeProvider,
     baseUrl: activeProfile.baseUrl,
     apiKey: activeProfile.apiKey,
-    modelId: activeProfile.modelId || modelIds[0] || '',
+    modelId,
     modelIds,
     maxTokens: activeProfile.maxTokens,
     temperature: activeProfile.temperature,
@@ -1235,12 +1238,18 @@ async function saveConfig() {
 }
 
 async function testConnection() {
-  const modelIds = normalizeModelList(parseModelList(els.settingModelList.value), els.settingModel.value.trim());
+  const fallbackModel = PROVIDER_RECOMMENDED_MODELS[els.settingProvider.value] || DEFAULT_PROVIDER_MODEL();
+  const modelIds = normalizeModelList(
+    parseModelList(els.settingModelList.value),
+    els.settingModel.value.trim(),
+    fallbackModel,
+  );
+  const modelId = modelIds[0] || fallbackModel;
   const payload = {
     provider: els.settingProvider.value,
     baseUrl: els.settingBaseUrl.value.trim(),
     apiKey: els.settingApiKey.value.trim(),
-    modelId: els.settingModel.value.trim() || modelIds[0] || '',
+    modelId,
     modelIds,
     maxTokens: Number.parseInt(els.settingMaxTokens.value, 10) || 128,
     temperature: 0,
@@ -2720,14 +2729,6 @@ function parseModelList(value) {
     .filter(Boolean);
 }
 
-function normalizeModelList(modelIds, activeModel) {
-  const models = Array.isArray(modelIds) ? modelIds.filter(Boolean) : [];
-  if (activeModel && !models.includes(activeModel)) {
-    models.unshift(activeModel);
-  }
-  return [...new Set(models)];
-}
-
 function handleProviderChange() {
   if (!currentConfig) {
     return;
@@ -2743,22 +2744,36 @@ function handleProviderChange() {
 
 function hydrateProviderProfiles(config) {
   const providerProfiles = {};
+  const activeProvider = config?.provider || 'openai';
 
   for (const provider of PROVIDERS) {
     const existing = config?.providerProfiles?.[provider.id] || {};
+    const fallbackModel = PROVIDER_RECOMMENDED_MODELS[provider.id] || DEFAULT_PROVIDER_MODEL();
+    const isActiveProvider = provider.id === activeProvider;
+    const sourceModelIds = existing.modelIds !== undefined
+      ? existing.modelIds
+      : (isActiveProvider ? config?.modelIds : []);
+    const sourceActiveModel = existing.modelId !== undefined
+      ? existing.modelId
+      : (isActiveProvider ? config?.modelId : '');
+    const modelIds = normalizeModelList(sourceModelIds, sourceActiveModel, fallbackModel);
+    const explicitModelId = normalizeModelList([sourceActiveModel], '', '')[0];
+    const modelId = explicitModelId
+      || modelIds[0]
+      || fallbackModel;
+
     providerProfiles[provider.id] = {
-      baseUrl: existing.baseUrl || provider.baseUrl || '',
-      apiKey: existing.apiKey || '',
-      modelId: existing.modelId || config?.modelId || DEFAULT_PROVIDER_MODEL(),
-      modelIds: normalizeModelList(existing.modelIds || config?.modelIds || [DEFAULT_PROVIDER_MODEL()], existing.modelId || config?.modelId || DEFAULT_PROVIDER_MODEL()),
-      maxTokens: existing.maxTokens || config?.maxTokens || 4096,
-      temperature: existing.temperature ?? config?.temperature ?? 0.1,
-      timeoutMs: existing.timeoutMs || config?.timeoutMs || 60000,
-      maxRetries: existing.maxRetries ?? config?.maxRetries ?? 2,
+      baseUrl: existing.baseUrl || (isActiveProvider ? config?.baseUrl : '') || provider.baseUrl || '',
+      apiKey: existing.apiKey ?? (isActiveProvider ? config?.apiKey : '') ?? '',
+      modelId,
+      modelIds,
+      maxTokens: existing.maxTokens ?? (isActiveProvider ? config?.maxTokens : null) ?? 4096,
+      temperature: existing.temperature ?? (isActiveProvider ? config?.temperature : null) ?? 0.1,
+      timeoutMs: existing.timeoutMs ?? (isActiveProvider ? config?.timeoutMs : null) ?? 60000,
+      maxRetries: existing.maxRetries ?? (isActiveProvider ? config?.maxRetries : null) ?? 2,
     };
   }
 
-  const activeProvider = config?.provider || 'openai';
   const activeProfile = providerProfiles[activeProvider] || providerProfiles.openai;
 
   return {
@@ -2792,18 +2807,13 @@ function hydrateProviderProfiles(config) {
 function applyProviderProfileToForm(providerId) {
   const profile = currentConfig?.providerProfiles?.[providerId] || createDefaultProviderProfile(providerId);
   const recommendedModel = PROVIDER_RECOMMENDED_MODELS[providerId] || '';
-  const savedModels = normalizeModelList(profile.modelIds, profile.modelId);
-  const hasOnlyLegacyDefault = savedModels.length === 1
-    && savedModels[0] === 'gpt-4o'
-    && profile.modelId === 'gpt-4o';
+  const fallbackModel = recommendedModel || DEFAULT_PROVIDER_MODEL();
+  const activeModel = normalizeModelList([profile.modelId], '', fallbackModel)[0] || fallbackModel;
+  const savedModels = normalizeModelList(profile.modelIds, activeModel, fallbackModel);
 
   if (recommendedModel && !savedModels.includes(recommendedModel)) {
     savedModels.unshift(recommendedModel);
   }
-
-  const activeModel = hasOnlyLegacyDefault
-    ? recommendedModel
-    : profile.modelId || savedModels[0] || recommendedModel;
 
   els.settingProvider.value = providerId;
   els.settingBaseUrl.value = profile.baseUrl || '';
@@ -2835,12 +2845,14 @@ function syncCurrentProviderDraft(providerOverride = null) {
 
 function readProviderForm() {
   const activeModel = els.settingModel.value.trim();
-  const modelIds = normalizeModelList(parseModelList(els.settingModelList.value), activeModel);
+  const fallbackModel = PROVIDER_RECOMMENDED_MODELS[els.settingProvider.value] || DEFAULT_PROVIDER_MODEL();
+  const modelIds = normalizeModelList(parseModelList(els.settingModelList.value), activeModel, fallbackModel);
+  const modelId = normalizeModelList([activeModel], '', fallbackModel)[0] || modelIds[0] || fallbackModel;
 
   return {
     baseUrl: els.settingBaseUrl.value.trim(),
     apiKey: els.settingApiKey.value.trim(),
-    modelId: activeModel || modelIds[0] || '',
+    modelId,
     modelIds,
     maxTokens: Number.parseInt(els.settingMaxTokens.value, 10) || 4096,
     temperature: Number.parseFloat(els.settingTemperature.value) || 0.1,
@@ -2865,7 +2877,7 @@ function createDefaultProviderProfile(providerId) {
 }
 
 function DEFAULT_PROVIDER_MODEL() {
-  return PROVIDER_RECOMMENDED_MODELS.openai || 'gpt-4o';
+  return PROVIDER_RECOMMENDED_MODELS.openai || 'gpt-5-mini';
 }
 
 function applyAnalysisSettingsToForm() {
