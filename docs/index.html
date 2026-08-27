@@ -140,14 +140,14 @@
           <div class="compatibility-panel reveal">
             <div class="compatibility-copy">
               <p class="compatibility-label">Current LinkedIn support</p>
-              <h2 id="compatibility-title">Use classic search for the full workflow.</h2>
+              <h2 id="compatibility-title">Read both LinkedIn search surfaces.</h2>
               <p>
-                The current extension reads LinkedIn's classic Jobs layout. The newer AI-powered search interface is not supported yet.
+                v0.4.0 reads LinkedIn's classic Jobs layout and the newer AI-powered / semantic search layout. The adapter finds visible AI job cards, keeps their job IDs, and reads the selected detail pane.
               </p>
               <div class="compatibility-instruction">
                 <ol class="compatibility-steps">
-                  <li>Open <strong>Learn more</strong> and choose <strong>Switch back to classic search</strong>.</li>
-                  <li>Refresh the LinkedIn page so the extension can read the classic layout and show the analysis.</li>
+                  <li>Open a Classic or AI-powered LinkedIn Jobs search page.</li>
+                  <li>After updating or switching layouts, refresh LinkedIn so the extension can attach to the current page.</li>
                 </ol>
               </div>
             </div>
@@ -161,7 +161,7 @@
                 loading="lazy"
                 decoding="async"
               />
-              <figcaption>Switch back to classic search, then refresh the LinkedIn page.</figcaption>
+              <figcaption>Classic Search remains available as a stable fallback.</figcaption>
             </figure>
           </div>
         </div>
@@ -170,7 +170,7 @@
       <section class="title-signals section-pad" id="title-signals" aria-labelledby="title-signals-title">
         <div class="container">
           <div class="section-lead reveal">
-            <p class="section-index">v0.3.1 update · title signals</p>
+            <p class="section-index">v0.4.0 update · AI search + title signals</p>
             <h2 id="title-signals-title">Make the useful details glanceable.</h2>
             <p>
               Language, experience, sponsorship, and the JD terms you care about can sit directly beside the job title. Each signal has its own capsule and a color you can control. Keyword markers are opt-in, so the default view stays quiet.
@@ -187,7 +187,7 @@
                 <span class="title-pill title-pill-lang">Lang: Dutch / English</span>
                 <span class="title-pill title-pill-exp">Exp: 3y+</span>
               </h3>
-              <p class="title-preview-caption">A compact reading layer for the classic LinkedIn Jobs surface.</p>
+              <p class="title-preview-caption">A compact reading layer across both LinkedIn Jobs surfaces.</p>
             </article>
 
             <div class="title-legend reveal" style="--reveal-delay: 100ms">
@@ -275,11 +275,22 @@
 
           <div class="ui-showcase">
             <div class="ui-showcase-lead reveal">
-              <p class="section-index">v0.3.1 in practice</p>
-              <h3>One signal layer, four useful places.</h3>
-              <p>The same title capsules stay readable across the LinkedIn page, the current-job analysis view, list mode, and Library. The final example shows the optional keyword layer after a JD match: only matching terms become title capsules. Settings changes apply after you save and refresh the page.</p>
+              <p class="section-index">v0.4.0 in practice</p>
+              <h3>One signal layer, across the workflow.</h3>
+              <p>The same title capsules stay readable across the AI-powered LinkedIn page, Classic Search, the current-job analysis view, list mode, and Library. The final example shows the optional keyword layer after a JD match: only matching terms become title capsules. Settings changes apply after you save and refresh the page.</p>
             </div>
             <div class="ui-showcase-grid">
+              <figure class="ui-showcase-card ui-showcase-card-wide reveal">
+                <img
+                  src="assets/v0.4.0-ai-powered-search.png"
+                  alt="LinkedIn AI-powered Jobs search with cached list analysis, current-job score, and KM, JD, and language capsules."
+                  width="2902"
+                  height="1608"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <figcaption>AI-powered Jobs search with list analysis and cached results</figcaption>
+              </figure>
               <figure class="ui-showcase-card ui-showcase-card-wide reveal">
                 <img
                   src="assets/v0.3.1-linkedin-title-capsules.png"
@@ -533,7 +544,7 @@ npm run build</code></pre>
                 </div>
                 <div class="install-item">
                   <h3>Update in place</h3>
-                  <p>For v0.1.2+ data, extract a new ZIP into a temporary folder, replace the files in the existing Chrome extension <code>Location</code>, then click <code>Reload</code>. Loading a new folder creates separate storage.</p>
+                  <p>For v0.1.2+ data, back up the original folder, extract the new ZIP temporarily, replace its contents in the existing Chrome extension <code>Location</code>, click <code>Reload</code>, and refresh LinkedIn. Loading a new folder creates separate storage.</p>
                 </div>
               </div>
             </div>

@@ -1,6 +1,6 @@
-# Tester Install Note — v0.3.1
+# Tester Install Note — v0.4.0
 
-`v0.3.1` is now merged into `main`. The feature branch remains available as implementation history.
+`v0.4.0` is now merged into `main`. The release adds support for LinkedIn's AI-powered / semantic Jobs search while retaining Classic Search support.
 
 If resume upload fails, the most common reason is that the wrong folder was loaded into Chrome.
 
@@ -15,23 +15,29 @@ Please do **not** load the repository source root directly.
 
 If the source root is loaded instead of `dist/`, the extension UI may still open, but resume upload for `PDF` or `DOCX` files can fail because packaged parser files are missing.
 
-## Updating the existing installation
+## Updating the existing installation without losing data
 
 To preserve data from v0.1.2 onward, do not load the new extracted ZIP as another folder:
 
-1. In `chrome://extensions/`, open the existing extension's `Details` and note its `Location`.
-2. Extract the new ZIP to a temporary folder.
-3. Replace the files inside the existing `Location` while keeping that folder path unchanged.
-4. Click `Reload` on the existing extension card.
+1. In `chrome://extensions/`, open the existing extension's `Details` and copy its `Location`.
+2. Back up the original extension folder.
+3. Extract `linkedin-job-match-v0.4.0.zip` to a temporary folder.
+4. Copy the package contents into the existing `Location`, replacing the old files. Keep the original folder path unchanged and do not create a nested `dist/` folder.
+5. Click `Reload` on the existing extension card.
+6. Refresh the LinkedIn tab and reopen the side panel.
 
 Loading the new folder with `Load unpacked` creates a separate extension ID and separate local storage. The release keeps the existing config, resume, saved/manual positions, and v0.1.2+ cache snapshots when the original folder and ID are retained. It does not turn previously unanalysed jobs into analysed jobs.
 
-## v0.3.1 checks
+The reason is that Chrome scopes `chrome.storage.local` to the extension ID. A ZIP cannot update an unpacked extension by itself; replacing files in the original `Location` keeps the existing extension entry and its data.
 
-1. Open the side panel's `Settings` tab and find `Title signals`.
-2. Confirm the four default title signals are checked.
-3. Choose `Color-blind friendly`, save, and confirm the visible title capsules change palette.
-4. Choose `Custom colors`, set a different hex color for each capsule, save, and confirm each capsule keeps its own color.
-5. Confirm `Show matched keywords beside the job title` starts unchecked. Add up to five JD keywords, enable the switch, and test `Tag`, `Bracket`, and `Spark` marker styles.
-6. Select OpenAI, Anthropic, and Gemini one by one. Confirm the fixed starter model is inserted into the editable `Saved models` field, then add another model manually and save.
-7. On a classic LinkedIn Jobs page, switch back from AI-powered search if needed, then refresh the page.
+## v0.4.0 checks
+
+1. Open an AI-powered LinkedIn Jobs search page. The URL usually contains `origin=SEMANTIC_SEARCH_LANDING_PAGE`.
+2. Refresh the page after the extension reload and confirm the side panel shows `Jobs on this page` with detected cards.
+3. Confirm cached match scores and title capsules appear beside analyzed jobs.
+4. Click several jobs from the side panel and confirm the selected detail and JD change with the job.
+5. Re-analyze the shown jobs, then refresh LinkedIn and confirm the list can be read again.
+6. Open the side panel's `Settings` tab and confirm the v0.3.1 title-signal, keyword, color, and provider settings still work.
+7. Switch LinkedIn back to Classic Search and refresh once to verify the Classic fallback.
+
+![v0.4.0 AI-powered LinkedIn search with cached list analysis and title capsules](./docs/assets/v0.4.0-ai-powered-search.png)

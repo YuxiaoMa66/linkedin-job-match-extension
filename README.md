@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/main"><img alt="v0.3.1" src="https://img.shields.io/badge/version-v0.3.1-9a4a30?style=flat-square" /></a>
+  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/main"><img alt="v0.4.0" src="https://img.shields.io/badge/version-v0.4.0-9a4a30?style=flat-square" /></a>
   <img alt="Chrome Manifest V3" src="https://img.shields.io/badge/Chrome-MV3-9a4a30?style=flat-square" />
   <img alt="Vite 5" src="https://img.shields.io/badge/Vite-5-9a4a30?style=flat-square" />
   <a href="./LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-9a4a30?style=flat-square" /></a>
@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/main"><strong>Use v0.3.1 on main</strong></a>
+  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/main"><strong>Use v0.4.0 on main</strong></a>
   &nbsp;&nbsp;|&nbsp;&nbsp;
   <a href="#installation">Installation</a>
   &nbsp;&nbsp;|&nbsp;&nbsp;
@@ -26,12 +26,12 @@
 </p>
 
 > [!NOTE]
-> `v0.3.1` is now merged into `main`. The feature branch remains available as the implementation history; the current main version supersedes the earlier `v0.2.0` release.
+> `v0.4.0` is now merged into `main`. The feature branch remains available as the AI-search implementation history; the current main version supersedes the earlier releases.
 
 > [!IMPORTANT]
 > **Current LinkedIn compatibility**
 >
-> The current version supports analysis on LinkedIn's **classic Jobs search interface** only. The newer **AI-powered search** interface is not supported yet. If LinkedIn opens AI-powered search, open `Learn more`, choose `Switch back to classic search`, and then refresh the LinkedIn page so the extension can read the classic layout.
+> v0.4.0 supports both LinkedIn's **classic Jobs search** and the newer **AI-powered / semantic search** interface. On the AI layout, it reads the visible job cards and the selected job detail. After updating the extension or switching between search layouts, refresh the LinkedIn page so the content reader attaches to the current layout.
 
 <p align="center">
   <img src="./docs/assets/classic-search-switch.png" alt="LinkedIn's Learn more menu with Switch back to classic search highlighted" width="100%" />
@@ -41,7 +41,7 @@
 
 1. **First install:** download a built ZIP, extract it, and load the extracted folder from `chrome://extensions/` → `Developer mode` → `Load unpacked`.
 2. **Update an existing v0.1.2+ installation:** extract the new ZIP, replace the files inside the original extension `Location`, keep the folder path unchanged, and click `Reload` on the original card.
-3. **Use LinkedIn Classic Jobs search:** if LinkedIn shows AI-powered search, choose `Learn more` → `Switch back to classic search`, then refresh the page.
+3. **Use either LinkedIn search layout:** v0.4.0 reads Classic Jobs search and AI-powered search. After switching layouts or updating the extension, refresh the page.
 4. Upload your resume in the side panel, open a job or a visible job list, and run the analysis.
 
 The same-folder update keeps the extension ID and therefore preserves local settings, resume data, saved/manual positions, and compatible history. Loading a newly extracted folder creates a separate unpacked extension ID and separate `chrome.storage.local`; the detailed reason and recovery steps are in [Installation](#installation).
@@ -49,6 +49,10 @@ The same-folder update keeps the extension ID and therefore preserves local sett
 ## See the decision surface
 
 Match scores and job signals stay inside LinkedIn while the side panel keeps the resume, evidence, history, saved positions, and re-analysis controls together.
+
+![LinkedIn AI-powered search with v0.4.0 list analysis, cached scores, and title capsules](./docs/assets/v0.4.0-ai-powered-search.png)
+
+The v0.4.0 adapter reads the AI-powered list and selected detail while preserving the same score, cache, history, and title-signal layer used by Classic Search.
 
 ![LinkedIn classic search and job detail with current title signals](./docs/assets/v0.3.1-linkedin-title-capsules.png)
 
@@ -58,11 +62,20 @@ Prefer a visual walkthrough? Open the [product homepage](./docs/index.html).
 
 | Capability | What it changes |
 | --- | --- |
-| Resume-to-role matching | Scores single jobs, visible LinkedIn search results, and jobs pasted from other sources. |
+| Resume-to-role matching | Scores single jobs, visible Classic or AI-powered LinkedIn search results, and jobs pasted from other sources. |
 | Inline LinkedIn signals | Adds match scores and configurable title capsules for JD language, required language, experience, sponsorship, and JD keywords. |
 | Reusable decision history | Caches compatible analyses, keeps separate LinkedIn and inserted-job history, and saves positions for later review. |
 | Provider choice | Supports OpenAI, Anthropic, Gemini, OpenRouter, Poe, and custom OpenAI-compatible endpoints. |
 | Netherlands sponsorship context | Checks organisation names against a bundled IND-derived dataset containing 12,927 unique names. |
+
+## What's New In v0.4.0
+
+- Added experimental support for LinkedIn's AI-powered / semantic Jobs search interface, including visible card discovery, stable job IDs, selected-job focus, and `About the job` JD extraction
+- Kept the existing Classic Search selectors and workflow as a fallback, so the same extension can read both LinkedIn layouts
+- Reused the existing cache and history keys without a storage migration; v0.1.2+ compatible results, sponsor snapshots, settings, resume data, and saved positions remain available when the original extension ID is retained
+- Added a verified AI-powered search screenshot showing cached list results, current-job analysis, and inline title capsules
+
+For the concise release record, see the [v0.4.0 release notes](./RELEASE_NOTES_v0.4.0.md).
 
 ## What's New In v0.3.1
 
@@ -70,7 +83,7 @@ Prefer a visual walkthrough? Open the [product homepage](./docs/index.html).
 - Added color presets, per-signal hex colors, and checkboxes so the title layer can stay useful without becoming noisy
 - Added opt-in JD keyword markers for up to five terms, with `Tag`, `Bracket`, and `Spark` styles; cached JD text is reused when settings change
 - Added fixed starter models for OpenAI, Anthropic, and Gemini while keeping `Saved models` editable; legacy `gpt-4o` is hidden without removing user-added model IDs
-- Preserved v0.1.2+ compatible match and sponsorship history, while keeping the classic LinkedIn search and refresh requirement explicit
+- Preserved v0.1.2+ compatible match and sponsorship history, while keeping the LinkedIn layout and refresh requirements explicit
 
 For the concise release record, see the [v0.3.1 release notes](./RELEASE_NOTES_v0.3.1.md).
 
@@ -160,11 +173,13 @@ On a LinkedIn job detail page, the extension reads:
 
 It then shows the result in the side panel and reuses cache when the same job has already been analyzed for the same resume and scoring context.
 
-### 3. List mode analysis on classic Jobs search
+### 3. List mode analysis on Classic and AI-powered Jobs search
 
-On LinkedIn's classic Jobs search results page, the extension can:
+On LinkedIn's Classic or AI-powered Jobs search results page, the extension can:
 
 - detect visible job cards on the page
+- read AI-powered cards from their stable LinkedIn component keys and retain the job ID used by the existing cache
+- focus an AI-powered card and wait for the selected detail pane before reading the JD
 - analyze the first `N` jobs automatically
 - load and show more jobs from the same page
 - reuse cached results instead of re-calling the model
@@ -349,20 +364,24 @@ Common mistake to avoid:
 - GitHub source archives are not the same as the built extension package.
 - If someone downloads the repository source and loads the root folder instead of `dist/`, resume parsing for `PDF` or `DOCX` files may fail.
 
-To build the current version from source, use the `main` branch with Option A. A GitHub release asset may be published separately from the source merge.
+To build the current version from source, use the `main` branch with Option A. The matching built package is attached to the [v0.4.0 GitHub Release](https://github.com/YuxiaoMa66/linkedin-job-match-extension/releases/tag/v0.4.0).
 
 ### Update the existing extension without creating a second one
 
 To keep the resume, settings, saved positions, manual jobs, and v0.1.2+ match history, update the extension in the same folder that Chrome already knows:
 
-1. Open `chrome://extensions/`, open the existing extension's `Details`, and note its `Location`.
-2. Extract the new ZIP into a temporary folder.
-3. Copy the extracted package contents into that existing `Location`, replacing the old files. Keep the original parent folder and path unchanged.
-4. Return to `chrome://extensions/` and click `Reload` on the existing extension card.
+1. Open `chrome://extensions/`, open the existing extension's `Details`, and copy its `Location` path.
+2. Back up that original folder before changing anything.
+3. Extract `linkedin-job-match-v0.4.0.zip` into a temporary folder.
+4. Copy the contents inside the extracted package into the existing `Location`, replacing the old files. Keep the original parent folder and path unchanged; do not create a nested `dist/` folder.
+5. Return to `chrome://extensions/` and click `Reload` on the existing extension card.
+6. Refresh the LinkedIn tab and reopen the side panel so the new content script is attached.
 
 Do not click `Load unpacked` on the newly extracted folder, and do not drag it in as a separate unpacked extension. Chrome will assign that folder a separate extension ID and separate `chrome.storage.local`, which makes it look like a new plugin. If a duplicate was already loaded, remove only the duplicate card and update the original folder in place.
 
 This release does not clear `ljm_config`, `persistentResume`, `ljm_saved_positions_v1`, `ljm_manual_jobs_v1`, or the v3 match cache. v0.1.2 and later analyzed results remain displayable for the same resume, including older sponsor and match snapshots; jobs that were never analyzed remain unanalysed. Existing cache expiry rules still apply. Chrome cannot automatically expose storage from a different extension ID, so a new folder cannot safely migrate old data by itself.
+
+Why not drag the ZIP directly? A ZIP is only a package. Loading its extracted folder as a new unpacked extension creates a different extension ID and a separate `chrome.storage.local`; Chrome then shows an apparently empty plugin. Updating the files inside the original `Location` keeps the original extension entry and its local data.
 
 ## Configuration
 

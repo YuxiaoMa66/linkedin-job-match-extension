@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/main"><img alt="v0.3.1" src="https://img.shields.io/badge/version-v0.3.1-9a4a30?style=flat-square" /></a>
+  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/main"><img alt="v0.4.0" src="https://img.shields.io/badge/version-v0.4.0-9a4a30?style=flat-square" /></a>
   <img alt="Chrome Manifest V3" src="https://img.shields.io/badge/Chrome-MV3-9a4a30?style=flat-square" />
   <img alt="Vite 5" src="https://img.shields.io/badge/Vite-5-9a4a30?style=flat-square" />
   <a href="./LICENSE"><img alt="MIT 许可证" src="https://img.shields.io/badge/license-MIT-9a4a30?style=flat-square" /></a>
@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/main"><strong>使用 main 中的 v0.3.1</strong></a>
+  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/main"><strong>使用 main 中的 v0.4.0</strong></a>
   &nbsp;&nbsp;|&nbsp;&nbsp;
   <a href="#安装方式">安装</a>
   &nbsp;&nbsp;|&nbsp;&nbsp;
@@ -26,12 +26,12 @@
 </p>
 
 > [!NOTE]
-> `v0.3.1` 现已合并进 `main`。原来的功能支线仍保留作为实现历史；当前 main 版本已经取代早期的 `v0.2.0`。
+> `v0.4.0` 现已合并进 `main`。原来的功能支线仍保留作为 AI 搜索适配历史；当前 main 版本已经取代早期版本。
 
 > [!IMPORTANT]
-> **当前版本的 LinkedIn 兼容性限制**
+> **当前版本的 LinkedIn 兼容性**
 >
-> 当前版本只能分析 LinkedIn **经典版 Jobs 搜索界面**。暂时不支持新版 **AI-powered search** 界面。如果 LinkedIn 打开的是 AI 搜索界面，请先打开 `Learn more` 菜单，点击 `Switch back to classic search`，然后刷新 LinkedIn 页面。刷新后扩展才能重新读取经典版界面并显示分析结果。
+> v0.4.0 同时支持 LinkedIn **经典版 Jobs 搜索**和新版 **AI-powered / semantic search** 界面。AI 界面会读取当前页面的岗位卡片和选中的岗位详情。更新扩展或切换两种搜索界面后，请刷新 LinkedIn 页面，让读取脚本重新连接当前界面。
 
 <p align="center">
   <img src="./docs/assets/classic-search-switch.png" alt="LinkedIn 的 Learn more 菜单，其中突出显示了 Switch back to classic search" width="100%" />
@@ -41,7 +41,7 @@
 
 1. **第一次安装：** 下载构建好的 ZIP，解压后打开 `chrome://extensions/`，开启“开发者模式”，点击“加载已解压的扩展程序”，选择解压后的目录。
 2. **更新已有的 v0.1.2+ 版本：** 解压新 ZIP，把文件替换到原扩展的 `Location` 中，保持目录路径不变，然后在原卡片上点击“Reload”。
-3. **使用 LinkedIn 经典版 Jobs 搜索：** 如果出现 AI 搜索界面，请点击 `Learn more` → `Switch back to classic search`，然后刷新页面。
+3. **使用任意 LinkedIn 搜索界面：** v0.4.0 同时读取 Classic Jobs Search 和 AI-powered Search。切换界面或更新扩展后，请刷新页面。
 4. 在侧边栏上传简历，打开岗位或岗位列表并开始分析。
 
 在同一目录更新可以保留扩展 ID，因此设置、简历、收藏/手动岗位和兼容历史都能继续使用。把新目录作为未打包扩展加载会生成独立的扩展 ID 和独立的 `chrome.storage.local`；详细原因和处理步骤见[安装方式](#安装方式)。
@@ -49,6 +49,10 @@
 ## 看清岗位，再决定是否投入时间
 
 匹配分数和岗位信号直接显示在 LinkedIn 页面里，侧边栏则集中保存简历、证据、历史、收藏和重新分析入口。
+
+![LinkedIn AI-powered 搜索页面中的 v0.4.0 列表分析、缓存分数和标题胶囊](./docs/assets/v0.4.0-ai-powered-search.png)
+
+v0.4.0 的适配器会读取 AI 搜索列表和当前岗位详情，同时继续复用 Classic Search 使用的匹配分数、缓存、历史和标题信号。
 
 ![当前版本 LinkedIn 经典版搜索和岗位详情中的标题信号](./docs/assets/v0.3.1-linkedin-title-capsules.png)
 
@@ -58,11 +62,20 @@
 
 | 能力 | 带来的变化 |
 | --- | --- |
-| 简历与岗位匹配 | 支持单岗位、LinkedIn 搜索结果列表和手动粘贴的其他来源岗位。 |
+| 简历与岗位匹配 | 支持单岗位、LinkedIn Classic 或 AI-powered 搜索结果列表，以及手动粘贴的其他来源岗位。 |
 | LinkedIn 页面内信号 | 在岗位标题附近显示匹配分数，以及可配置的 JD 语言、要求语言、经验年限、sponsorship 和 JD 关键词胶囊框。 |
 | 可复用的判断历史 | 复用兼容缓存，区分 LinkedIn 与手动插入岗位历史，并收藏值得继续跟进的岗位。 |
 | 多模型服务商 | 支持 OpenAI、Anthropic、Gemini、OpenRouter、Poe 和自定义 OpenAI 兼容接口。 |
 | 荷兰 sponsorship 信息 | 使用内置 IND 衍生数据集检查组织名称，当前包含 12,927 个唯一名称。 |
+
+## v0.4.0 更新重点
+
+- 新增 LinkedIn AI-powered / semantic Jobs 搜索界面的实验性支持，包括可见岗位卡片识别、稳定岗位 ID、选中岗位切换和 `About the job` JD 读取
+- 保留原有 Classic Search 选择器和工作流作为 fallback，同一个扩展可以读取两种 LinkedIn 界面
+- 复用现有缓存和历史数据键，不需要迁移存储；保留原扩展 ID 时，v0.1.2 以来兼容的匹配结果、sponsor 快照、设置、简历和收藏岗位都可以继续使用
+- 增加一张经过实际测试的 AI-powered 搜索截图，展示缓存列表结果、当前岗位分析和标题胶囊
+
+简洁的版本记录请看 [v0.4.0 更新说明](./RELEASE_NOTES_v0.4.0.zh-CN.md)。
 
 ## v0.3.1 更新重点
 
@@ -70,7 +83,7 @@
 - 新增颜色预设、每种信号独立色号和勾选项，可以控制显示内容，避免标题信息过多
 - 新增最多 5 个 JD 关键词的可选标记，支持 `Tag`、`Bracket`、`Spark` 三种样式；修改设置时会复用已缓存的 JD 片段
 - OpenAI、Anthropic 和 Gemini 会写入固定起始模型，但 `Saved models` 仍可编辑；旧的 `gpt-4o` 会隐藏，用户自己添加的模型 ID 不会删除
-- 保留 v0.1.2 以来兼容的匹配和 sponsor 历史，并继续明确只能使用经典版 LinkedIn 搜索，切回后需要刷新页面
+- 保留 v0.1.2 以来兼容的匹配和 sponsor 历史，并继续明确 LinkedIn 界面切换或扩展更新后需要刷新页面
 
 简洁的版本记录请看 [v0.3.1 更新说明](./RELEASE_NOTES_v0.3.1.zh-CN.md)。
 
@@ -163,11 +176,13 @@ provider 切换不会动态获取模型。本版本在选择 provider 时，会�
 
 然后在侧边栏中展示结果。如果同一个岗位已经针对当前简历和当前评分配置分析过，则优先复用缓存。
 
-### 3. 经典版 Jobs 搜索列表分析
+### 3. Classic 与 AI-powered Jobs 搜索列表分析
 
-在 LinkedIn 经典版 Jobs 搜索结果页中，扩展可以：
+在 LinkedIn Classic 或 AI-powered Jobs 搜索结果页中，扩展可以：
 
 - 识别当前页面可见岗位
+- 从 AI-powered 卡片的 LinkedIn component key 读取稳定岗位 ID，并继续使用现有缓存
+- 聚焦 AI-powered 岗位卡片，等待详情面板切换后读取 JD
 - 自动分析前 `N` 个岗位
 - 加载当前页更多岗位
 - 对已有历史结果的岗位直接复用缓存
@@ -350,20 +365,24 @@ npm run build
 - 用户下载了 GitHub 仓库源码压缩包，然后直接加载源码根目录。
 - 这样虽然扩展界面可能可以打开，但如果没有加载 `dist/`，`PDF` 或 `DOCX` 简历解析就可能失败。
 
-如果要从源码构建当前版本，请使用 `main` 支线并按方式一操作。GitHub Release 资产可以在源码合并后单独发布。
+如果要从源码构建当前版本，请使用 `main` 支线并按方式一操作。对应的构建包已经附在 [v0.4.0 GitHub Release](https://github.com/YuxiaoMa66/linkedin-job-match-extension/releases/tag/v0.4.0) 中。
 
 ### 更新现有扩展，避免生成第二个插件
 
 为了保留简历、设置、收藏岗位、手动插入岗位以及从 v0.1.2 开始的历史匹配结果，请始终在 Chrome 已经加载的原目录内更新：
 
-1. 打开 `chrome://extensions/`，进入现有扩展的“详细信息”，记下 `位置（Location）`。
-2. 把新的 ZIP 解压到一个临时目录。
-3. 将解压后的扩展文件复制到原来的 `Location` 中并替换旧文件；保留原来的父目录和路径不变。
-4. 回到 `chrome://extensions/`，点击原扩展卡片上的“重新加载（Reload）”。
+1. 打开 `chrome://extensions/`，进入现有扩展的“详细信息”，复制 `位置（Location）` 路径。
+2. 修改前先备份原来的扩展文件夹。
+3. 将 `linkedin-job-match-v0.4.0.zip` 解压到临时目录。
+4. 将解压包里面的内容复制到原来的 `Location` 中并替换旧文件。保留原来的父目录和路径不变，不要在里面再嵌套一个 `dist/` 文件夹。
+5. 回到 `chrome://extensions/`，点击原扩展卡片上的“重新加载（Reload）”。
+6. 刷新 LinkedIn 标签页，再重新打开侧边栏，让新版读取脚本重新连接页面。
 
 不要对新解压的目录再次点击“加载已解压的扩展程序”，也不要把它作为一个新的未打包扩展拖进去。Chrome 会为新目录分配不同的扩展 ID 和独立的 `chrome.storage.local`，看起来就会像安装了第二个插件。如果已经出现重复卡片，只删除重复的那一个，然后回到原目录更新。
 
 本版本不会清除 `ljm_config`、`persistentResume`、`ljm_saved_positions_v1`、`ljm_manual_jobs_v1` 或 v3 匹配缓存。相同简历下，从 v0.1.2 开始的已分析结果仍可显示，包括旧记录中的 sponsor 和匹配快照；从未分析的岗位仍保持“未分析”。原有缓存的过期规则仍然有效。Chrome 不会把另一个扩展 ID 的本地存储自动开放给新扩展，因此换一个新目录本身无法安全迁移旧数据。
+
+为什么不能直接拖 ZIP？ZIP 只是打包文件。把它解压后作为新的未打包扩展加载，会产生不同的扩展 ID 和独立的 `chrome.storage.local`，看起来就像一个空的新插件。把文件替换到原来的 `Location`，才能继续使用原扩展条目和本地数据。
 
 ## 配置方式
 
