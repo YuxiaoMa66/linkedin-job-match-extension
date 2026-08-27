@@ -555,6 +555,92 @@ h2 {
   text-align: left;
 }
 
+.indeed {
+  border-top: 1px solid var(--line);
+  background: var(--bg-soft);
+}
+
+.indeed-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  align-items: center;
+  gap: clamp(42px, 8vw, 118px);
+}
+
+.indeed-copy {
+  max-width: 520px;
+}
+
+.indeed-copy h2 {
+  margin-bottom: 20px;
+  font-size: clamp(2.35rem, 4.8vw, 4.8rem);
+}
+
+.indeed-copy > p:not(.section-index) {
+  max-width: 500px;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.indeed-points {
+  margin-top: 30px;
+  border-top: 1px solid var(--line);
+}
+
+.indeed-point {
+  display: grid;
+  grid-template-columns: minmax(108px, 0.42fr) minmax(0, 1fr);
+  gap: 18px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.indeed-point strong {
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.indeed-point span {
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
+.indeed-copy .text-link {
+  margin-top: 26px;
+}
+
+.indeed-media {
+  min-width: 0;
+  margin: 0;
+}
+
+.indeed-image-frame {
+  overflow: hidden;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  transform: rotate(-0.8deg);
+}
+
+.indeed-image-frame img {
+  width: 100%;
+  height: auto;
+  max-height: 720px;
+  border-radius: 18px;
+  object-fit: contain;
+  object-position: top center;
+  background: var(--surface-muted);
+}
+
+.indeed-media figcaption {
+  padding-left: 4px;
+}
+
 .title-signals {
   border-top: 1px solid var(--line);
   background: var(--bg);
@@ -1489,6 +1575,7 @@ html.js .reveal.is-visible {
   .workflow-grid,
   .coverage-grid,
   .compatibility-panel,
+  .indeed-grid,
   .title-signals-layout,
   .install-shell {
     grid-template-columns: 1fr;
@@ -1509,6 +1596,10 @@ html.js .reveal.is-visible {
   }
 
   .compatibility-copy {
+    max-width: 720px;
+  }
+
+  .indeed-copy {
     max-width: 720px;
   }
 
@@ -1572,6 +1663,19 @@ html.js .reveal.is-visible {
   .compatibility-panel {
     gap: 34px;
     padding: 24px 20px;
+  }
+
+  .indeed-grid {
+    gap: 42px;
+  }
+
+  .indeed-image-frame {
+    transform: none;
+  }
+
+  .indeed-point {
+    grid-template-columns: 1fr;
+    gap: 5px;
   }
 
   .compatibility-copy h2 {

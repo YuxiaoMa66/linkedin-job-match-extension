@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="LinkedIn Job Match compares your resume with real job descriptions, keeps the useful context, and surfaces the signals behind a match."
+      content="LinkedIn Job Match compares your resume with real job descriptions across LinkedIn and Indeed, then keeps the useful context around."
     />
     <meta name="theme-color" content="#f4efe5" />
     <title>LinkedIn Job Match | See the signal sooner</title>
@@ -77,7 +77,7 @@
             <p class="eyebrow">Job search, with context</p>
             <h1 id="hero-title">Less guessing. <span>Better applications.</span></h1>
             <p class="hero-description">
-              Compare a saved resume with real job descriptions, reuse the useful work, and see the signals behind a match.
+              Compare one saved resume with real job descriptions across LinkedIn and Indeed, then keep the useful work around.
             </p>
             <div class="hero-actions">
               <a class="button button-primary" href="#workflow">
@@ -114,14 +114,14 @@
             <p class="section-index">A decision surface for the work already in front of you</p>
             <h2 id="intro-title">From job tabs to a shortlist you can explain.</h2>
             <p>
-              LinkedIn Job Match sits beside LinkedIn, reads the role you are looking at, and gives your resume a consistent place in the decision.
+              LinkedIn Job Match sits beside LinkedIn or Indeed, reads the role you are looking at, and gives your resume a consistent place in the decision.
             </p>
           </div>
 
           <div class="principles-grid">
             <article class="principle reveal">
               <h3>Read the role</h3>
-              <p>Analyze a detail page, a search result list, or a job you paste from somewhere else.</p>
+              <p>Analyze a detail page, a LinkedIn or Indeed list, or a job you paste from somewhere else.</p>
             </article>
             <article class="principle reveal" style="--reveal-delay: 80ms">
               <h3>Keep the context</h3>
@@ -139,15 +139,15 @@
         <div class="container">
           <div class="compatibility-panel reveal">
             <div class="compatibility-copy">
-              <p class="compatibility-label">Current LinkedIn support</p>
-              <h2 id="compatibility-title">Read both LinkedIn search surfaces.</h2>
+              <p class="compatibility-label">LinkedIn support</p>
+              <h2 id="compatibility-title">Classic and AI search, same workflow.</h2>
               <p>
-                v0.4.0 reads LinkedIn's classic Jobs layout and the newer AI-powered / semantic search layout. The adapter finds visible AI job cards, keeps their job IDs, and reads the selected detail pane.
+                The extension reads LinkedIn's classic Jobs layout and the newer AI-powered / semantic search layout. Both surfaces reuse the same resume, scoring, cache, and title-signal workflow.
               </p>
               <div class="compatibility-instruction">
                 <ol class="compatibility-steps">
                   <li>Open a Classic or AI-powered LinkedIn Jobs search page.</li>
-                  <li>After updating or switching layouts, refresh LinkedIn so the extension can attach to the current page.</li>
+                  <li>After updating or switching layouts, refresh LinkedIn so the reader can attach to the current page.</li>
                 </ol>
               </div>
             </div>
@@ -167,13 +167,62 @@
         </div>
       </section>
 
+      <section class="indeed section-pad" aria-labelledby="indeed-title">
+        <div class="container indeed-grid">
+          <div class="indeed-copy reveal">
+            <p class="section-index">Indeed support</p>
+            <h2 id="indeed-title">Bring the same decision layer to Indeed.</h2>
+            <p>
+              v0.5.0 adds the Netherlands Indeed list without splitting the product into a second workflow. Visible cards, the selected detail pane, cached analysis, and title signals stay connected.
+            </p>
+
+            <div class="indeed-points">
+              <div class="indeed-point">
+                <strong>Visible list</strong>
+                <span>Detects the jobs already on the page and keeps their Indeed identifiers stable.</span>
+              </div>
+              <div class="indeed-point">
+                <strong>Selected detail</strong>
+                <span>Reads the title, company, location, and job description from the open role.</span>
+              </div>
+              <div class="indeed-point">
+                <strong>Same library</strong>
+                <span>Preserves existing data while keeping Indeed history separate from LinkedIn and inserted jobs.</span>
+              </div>
+            </div>
+
+            <a class="text-link" href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/releases/tag/v0.5.0">
+              Read the v0.5.0 release notes
+              <span aria-hidden="true">↗</span>
+            </a>
+          </div>
+
+          <figure class="indeed-media reveal" style="--reveal-delay: 120ms">
+            <div class="indeed-image-frame">
+              <img
+                src="assets/v0.5.0-indeed.png"
+                alt="Indeed job recommendations with LinkedIn Job Match cached analysis, match scores, and title capsules in the side panel."
+                width="2868"
+                height="1750"
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
+            <figcaption>
+              <span>Indeed list and selected job detail</span>
+              <span>Cached scores and title capsules stay beside the role.</span>
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
       <section class="title-signals section-pad" id="title-signals" aria-labelledby="title-signals-title">
         <div class="container">
           <div class="section-lead reveal">
-            <p class="section-index">v0.4.0 update · AI search + title signals</p>
+            <p class="section-index">Title signals</p>
             <h2 id="title-signals-title">Make the useful details glanceable.</h2>
             <p>
-              Language, experience, sponsorship, and the JD terms you care about can sit directly beside the job title. Each signal has its own capsule and a color you can control. Keyword markers are opt-in, so the default view stays quiet.
+              Language, experience, sponsorship, and the JD terms you care about can sit directly beside the job title on LinkedIn and Indeed. Each signal has its own capsule and a color you can control. Keyword markers are opt-in, so the default view stays quiet.
             </p>
           </div>
 
@@ -187,7 +236,7 @@
                 <span class="title-pill title-pill-lang">Lang: Dutch / English</span>
                 <span class="title-pill title-pill-exp">Exp: 3y+</span>
               </h3>
-              <p class="title-preview-caption">A compact reading layer across both LinkedIn Jobs surfaces.</p>
+              <p class="title-preview-caption">A compact reading layer across LinkedIn and Indeed.</p>
             </article>
 
             <div class="title-legend reveal" style="--reveal-delay: 100ms">
@@ -259,7 +308,7 @@
 
           <div class="provider-starter-note reveal" style="--reveal-delay: 120ms">
             <div>
-              <p class="provider-starter-kicker">v0.3.1 provider starters</p>
+              <p class="provider-starter-kicker">Provider starters</p>
               <h3>Start with a fixed low-cost model. Keep the list yours.</h3>
               <p>Choosing OpenAI, Anthropic, or Gemini inserts a starter into Saved models. The field stays editable, and you can add more model IDs whenever you want.</p>
             </div>
@@ -275,9 +324,9 @@
 
           <div class="ui-showcase">
             <div class="ui-showcase-lead reveal">
-              <p class="section-index">v0.4.0 in practice</p>
+              <p class="section-index">The signal layer in practice</p>
               <h3>One signal layer, across the workflow.</h3>
-              <p>The same title capsules stay readable across the AI-powered LinkedIn page, Classic Search, the current-job analysis view, list mode, and Library. The final example shows the optional keyword layer after a JD match: only matching terms become title capsules. Settings changes apply after you save and refresh the page.</p>
+              <p>The same title capsules stay readable across LinkedIn Classic, LinkedIn AI-powered Search, Indeed, the current-job analysis view, list mode, and Library. The final example shows the optional keyword layer after a JD match. Settings changes apply after you save and refresh the page.</p>
             </div>
             <div class="ui-showcase-grid">
               <figure class="ui-showcase-card ui-showcase-card-wide reveal">
@@ -357,7 +406,7 @@
             <p class="section-index">The extension stays close to the posting</p>
             <h2 id="proof-title">One view for the decision.</h2>
             <p>
-              Match badges stay in LinkedIn's native job surface while the side panel holds the detail you need to decide what happens next.
+              Match badges stay in LinkedIn or Indeed's native job surface while the side panel holds the detail you need to decide what happens next.
             </p>
           </div>
 
@@ -402,7 +451,7 @@
               <span class="workflow-rule" aria-hidden="true"></span>
               <div>
                 <h3>Read each role</h3>
-                <p>Analyze single jobs or the visible results on a LinkedIn search page.</p>
+                <p>Analyze single jobs or visible results on a LinkedIn or Indeed page.</p>
               </div>
             </li>
             <li class="workflow-item reveal" style="--reveal-delay: 160ms">
@@ -456,10 +505,10 @@
             <article class="signal-card signal-card-sage reveal" style="--reveal-delay: 160ms">
               <div class="signal-card-copy">
                 <h3>Keep a reusable library</h3>
-                <p>History and saved positions let you revisit LinkedIn jobs and inserted jobs without losing the thread.</p>
+                <p>History and saved positions let you revisit LinkedIn, Indeed, and inserted jobs without losing the thread.</p>
               </div>
               <span class="signal-mark signal-mark-line" aria-hidden="true"></span>
-              <p class="signal-footnote">LinkedIn and pasted sources live in the same side panel.</p>
+              <p class="signal-footnote">LinkedIn, Indeed, and pasted sources live in the same side panel.</p>
             </article>
 
             <figure class="signal-card signal-card-media reveal" style="--reveal-delay: 240ms">
@@ -480,10 +529,10 @@
       <section class="coverage section-pad" aria-labelledby="coverage-title">
         <div class="container coverage-grid">
           <div class="coverage-copy reveal">
-            <p class="section-index">The job does not have to live on LinkedIn</p>
+            <p class="section-index">Other sources remain welcome</p>
             <h2 id="coverage-title">Paste it in when the source changes.</h2>
             <p>
-              Add a job from a company site or another board, choose rule detection or model detection, review the fields, and analyze it in the same surface.
+              Indeed and LinkedIn have dedicated list readers. For a company site or another board, choose rule detection or model detection, review the fields, and analyze the job in the same surface.
             </p>
             <a class="text-link" href="#install">
               Build the extension locally
@@ -544,7 +593,7 @@ npm run build</code></pre>
                 </div>
                 <div class="install-item">
                   <h3>Update in place</h3>
-                  <p>For v0.1.2+ data, back up the original folder, extract the new ZIP temporarily, replace its contents in the existing Chrome extension <code>Location</code>, click <code>Reload</code>, and refresh LinkedIn. Loading a new folder creates separate storage.</p>
+                  <p>For v0.1.2+ data, back up the original folder, extract the new ZIP temporarily, replace its contents in the existing Chrome extension <code>Location</code>, click <code>Reload</code>, and refresh LinkedIn or Indeed. Loading a new folder creates separate storage.</p>
                 </div>
               </div>
             </div>
