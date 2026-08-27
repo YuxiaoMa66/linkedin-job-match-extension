@@ -12,7 +12,7 @@ v0.4.0 新增了经过实际测试的 LinkedIn AI-powered / semantic Jobs 搜索
 - 保留 Classic Search 选择器作为 fallback，同一个扩展支持两种 LinkedIn 界面。
 - 在项目说明中加入经过验证的 AI-powered 搜索截图。
 
-![v0.4.0 AI-powered LinkedIn 搜索中的缓存列表分析和标题胶囊](./docs/assets/v0.4.0-ai-powered-search.png)
+![v0.4.0 AI-powered LinkedIn 搜索中的缓存列表分析和标题胶囊](https://raw.githubusercontent.com/YuxiaoMa66/linkedin-job-match-extension/main/docs/assets/v0.4.0-ai-powered-search.png)
 
 ## 兼容性与刷新
 

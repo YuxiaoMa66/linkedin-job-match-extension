@@ -12,7 +12,7 @@ v0.4.0 adds a tested adapter for LinkedIn's newer AI-powered / semantic Jobs sea
 - Keeps the Classic Search selectors as a fallback for the same extension.
 - Adds the verified AI-powered search screenshot to the repository documentation.
 
-![v0.4.0 AI-powered LinkedIn search with cached list analysis and title capsules](./docs/assets/v0.4.0-ai-powered-search.png)
+![v0.4.0 AI-powered LinkedIn search with cached list analysis and title capsules](https://raw.githubusercontent.com/YuxiaoMa66/linkedin-job-match-extension/main/docs/assets/v0.4.0-ai-powered-search.png)
 
 ## Compatibility and refresh
 
