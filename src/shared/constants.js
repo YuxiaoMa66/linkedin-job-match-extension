@@ -181,6 +181,12 @@ export const TITLE_KEYWORD_STYLES = Object.freeze([
   Object.freeze({ id: 'spark', label: 'Spark', example: '✦ SQL' }),
 ]);
 
+export const PROVIDER_RECOMMENDED_MODELS = Object.freeze({
+  openai: 'gpt-5-mini',
+  anthropic: 'claude-haiku-4-5-20251001',
+  gemini: 'gemini-3.5-flash-lite',
+});
+
 export const DEFAULT_TITLE_DISPLAY_SETTINGS = Object.freeze({
   colorScheme: 'default',
   visibleSignals: Object.freeze({
@@ -188,7 +194,7 @@ export const DEFAULT_TITLE_DISPLAY_SETTINGS = Object.freeze({
     [TITLE_SIGNAL_KEYS.JD_LANGUAGE]: true,
     [TITLE_SIGNAL_KEYS.REQUIRED_LANGUAGE]: true,
     [TITLE_SIGNAL_KEYS.EXPERIENCE]: true,
-    [TITLE_SIGNAL_KEYS.KEYWORD]: true,
+    [TITLE_SIGNAL_KEYS.KEYWORD]: false,
   }),
   customColors: Object.freeze({ ...TITLE_COLOR_SCHEMES.default.colors }),
   keywordList: Object.freeze([]),
@@ -254,10 +260,14 @@ export function normalizeTitleDisplaySettings(settings) {
     ]),
   );
   const visibleSignals = Object.fromEntries(
-    Object.keys(DEFAULT_TITLE_DISPLAY_SETTINGS.visibleSignals).map(key => [
-      key,
-      source.visibleSignals?.[key] !== false,
-    ]),
+    Object.keys(DEFAULT_TITLE_DISPLAY_SETTINGS.visibleSignals).map(key => {
+      const configuredValue = source.visibleSignals?.[key];
+      const defaultValue = DEFAULT_TITLE_DISPLAY_SETTINGS.visibleSignals[key];
+      return [
+        key,
+        configuredValue === undefined ? defaultValue : configuredValue !== false,
+      ];
+    }),
   );
   const keywordStyle = TITLE_KEYWORD_STYLES.some(style => style.id === source.keywordStyle)
     ? source.keywordStyle

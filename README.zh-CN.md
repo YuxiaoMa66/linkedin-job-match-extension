@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/feature/v0.3.0-title-signals"><img alt="预览 v0.3.0" src="https://img.shields.io/badge/preview-v0.3.0-9a4a30?style=flat-square" /></a>
+  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/feature/v0.3.1-title-signals"><img alt="预览 v0.3.1" src="https://img.shields.io/badge/preview-v0.3.1-9a4a30?style=flat-square" /></a>
   <img alt="Chrome Manifest V3" src="https://img.shields.io/badge/Chrome-MV3-9a4a30?style=flat-square" />
   <img alt="Vite 5" src="https://img.shields.io/badge/Vite-5-9a4a30?style=flat-square" />
   <a href="./LICENSE"><img alt="MIT 许可证" src="https://img.shields.io/badge/license-MIT-9a4a30?style=flat-square" /></a>
@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/feature/v0.3.0-title-signals"><strong>测试 v0.3.0 支线</strong></a>
+  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/feature/v0.3.1-title-signals"><strong>测试 v0.3.1 支线</strong></a>
   &nbsp;&nbsp;|&nbsp;&nbsp;
   <a href="#安装方式">安装</a>
   &nbsp;&nbsp;|&nbsp;&nbsp;
@@ -26,7 +26,7 @@
 </p>
 
 > [!NOTE]
-> `v0.3.0` 目前只发布在 `feature/v0.3.0-title-signals` 支线供测试，暂时没有合并到 `main`，也不会替换稳定版 `v0.2.0`。
+> `v0.3.1` 目前只发布在 `feature/v0.3.1-title-signals` 支线供测试，暂时没有合并到 `main`，也不会替换稳定版 `v0.2.0`。
 
 > [!IMPORTANT]
 > **当前版本的 LinkedIn 兼容性限制**
@@ -53,14 +53,16 @@
 | 多模型服务商 | 支持 OpenAI、Anthropic、Gemini、OpenRouter、Poe 和自定义 OpenAI 兼容接口。 |
 | 荷兰 sponsorship 信息 | 使用内置 IND 衍生数据集检查组织名称，当前包含 12,927 个唯一名称。 |
 
-## v0.3.0 更新重点（测试支线）
+## v0.3.1 更新重点（测试支线）
 
 - 岗位标题中的 `JD 语言` 和 `要求语言` 改为两个独立胶囊框，`KM` 与 `经验年限` 也分别显示
 - 设置页新增 `默认`、`色盲友好` 和 `自定义颜色` 三套颜色方案
 - 自定义模式支持给每一种胶囊单独输入色号：KM、JD 语言、要求语言、经验年限和 JD 关键词
 - 新增勾选项，可分别控制四种基础标题信息是否显示
 - 新增最多 5 个 JD 关键词匹配，并提供 `Tag`、`Bracket`、`Spark` 三种标题标记样式
+- 关键词标记改为默认关闭；即使填入关键词，也要勾选“在岗位标题旁显示匹配关键词”后才会显示
 - 已分析岗位会复用本地缓存的 JD 片段来重新计算关键词，不需要因为改颜色或关键词重新调用模型
+- 选择 OpenAI、Anthropic 或 Gemini 时，会向可编辑的 `Saved models` 自动写入本预览版固定的低成本起始模型：`gpt-5-mini`、`claude-haiku-4-5-20251001` 或 `gemini-3.5-flash-lite`；用户仍可编辑列表或继续添加模型
 - 继续明确 LinkedIn 兼容边界：请使用经典版 Jobs 搜索，从 AI 搜索切回经典版后刷新页面
 
 ### 标题胶囊颜色说明
@@ -75,7 +77,45 @@
 | 经验年限 | `Exp: 3y+` | 琥珀色 `#B45309` | 橙色 `#E69F00` |
 | JD 关键词 | `KEY: SQL` | 玫红色 `#BE123C` | 淡紫色 `#CC79A7` |
 
-进入设置页的 `Title signals` 区块，在下拉菜单中选择颜色方案。色盲友好方案使用更容易区分的色相；自定义模式可以为每一个胶囊分别输入十六进制色号。四种基础信息通过勾选框控制；关键词胶囊会在已分析 JD 匹配到关键词后显示。
+进入设置页的 `Title signals` 区块，在下拉菜单中选择颜色方案。色盲友好方案使用更容易区分的色相；自定义模式可以为每一个胶囊分别输入十六进制色号。四种基础信息通过勾选框控制；关键词标记默认关闭，只有开启后并且已分析 JD 匹配到关键词时才会显示。
+
+### v0.3.1 截图说明
+
+以下截图分别展示岗位标题胶囊、可选的关键词标记和每个胶囊独立设置颜色的界面：
+
+![LinkedIn 岗位标题信号](./docs/assets/v0.3.1-title-signals-settings.png)
+
+![可选的 JD 关键词标记](./docs/assets/v0.3.1-keyword-markers.png)
+
+![每个胶囊独立的自定义颜色](./docs/assets/v0.3.1-custom-colors.png)
+
+### v0.3.1 UI 显示示例
+
+同一套标题信号会显示在经典版 LinkedIn 搜索/详情界面，也会同步出现在侧边栏分析页、列表模式和 Library 历史记录中。保存设置后刷新页面，当前界面会应用新的显示配置。
+
+![经典版 LinkedIn 搜索和详情中的标题胶囊](./docs/assets/v0.3.1-linkedin-title-capsules.png)
+
+![当前岗位分析页中的标题胶囊](./docs/assets/v0.3.1-analysis-panel.png)
+
+![列表模式中的标题胶囊](./docs/assets/v0.3.1-list-mode.png)
+
+![Library 历史记录中的标题胶囊](./docs/assets/v0.3.1-library.png)
+
+下面这张图展示“已开启且已命中”的状态：设置中配置了 5 个关键词里的 2 个，并选择 `Spark` 样式；当 JD 中命中 `BI` 时，它会作为独立的玫红色胶囊显示在匹配岗位标题旁。已经配置但没有出现在已读取 JD 中的关键词不会显示。
+
+![使用 Spark 样式显示已命中的 JD 关键词](./docs/assets/v0.3.1-keyword-match.png)
+
+### 本预览版固定的 provider 起始模型
+
+provider 切换不会动态获取模型。本预览版在选择 provider 时，会把下面的起始模型写入可编辑的 `Saved models`：
+
+| Provider | 起始模型 | 官方参考 |
+| --- | --- | --- |
+| OpenAI | `gpt-5-mini` | [OpenAI pricing](https://developers.openai.com/api/docs/pricing) |
+| Anthropic | `claude-haiku-4-5-20251001` | [Claude models overview](https://docs.anthropic.com/en/docs/about-claude/models/overview) |
+| Gemini | `gemini-3.5-flash-lite` | [Gemini 3.5 Flash-Lite](https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash-lite) |
+
+`Saved models` 文本框仍然可以自由编辑；可以保留起始模型、替换它，或点击 `Add active model` 继续添加新的模型 ID。
 
 ## v0.2.0 更新重点
 
@@ -179,7 +219,7 @@
 - 选择默认或色盲友好颜色方案
 - 为每一种胶囊单独输入自定义色号
 - 分别勾选 KM、JD 语言、要求语言和经验年限
-- 输入最多 5 个 JD 关键词，并选择标题中的标记样式
+- 可选开启关键词标题标记，输入最多 5 个 JD 关键词，并选择标题中的标记样式
 
 关键词扫描使用已分析岗位中保存的 JD 文本片段。保存设置后，当前 LinkedIn 页面会刷新标题角标。
 
@@ -321,7 +361,7 @@ npm run build
 - 用户下载了 GitHub 仓库源码压缩包，然后直接加载源码根目录。
 - 这样虽然扩展界面可能可以打开，但如果没有加载 `dist/`，`PDF` 或 `DOCX` 简历解析就可能失败。
 
-如果要测试 `v0.3.0` 支线，请按方式一切换到 `feature/v0.3.0-title-signals` 后自行构建。测试完成前，这条支线不会创建正式 Release 资产。
+如果要测试 `v0.3.1` 支线，请按方式一切换到 `feature/v0.3.1-title-signals` 后自行构建。测试完成前，这条支线不会创建正式 Release 资产。
 
 ## 配置方式
 
@@ -332,13 +372,13 @@ npm run build
 3. 选择 provider
 4. 填写该 provider 对应的 `Base URL`
 5. 填写该 provider 对应的 `API key`
-6. 选择 `Active model`
-7. 按需要维护多个 `Saved models`
+6. 选择 `Active model`；选择 OpenAI、Anthropic 或 Gemini 时，`Saved models` 会自动写入本预览版固定的低成本起始模型
+7. 按需要编辑 `Saved models`，或点击 `Add active model` 添加多个模型
 8. 选择 `Analysis mode`
 9. 选择是否 `I need employer sponsorship`
 10. 按需要开启 `Full custom scoring`
 11. 在 `Title signals` 中选择需要显示的标题胶囊
-12. 如有需要，选择颜色方案、为每个胶囊输入自定义色号，并添加最多 5 个 JD 关键词
+12. 如有需要，选择颜色方案、为每个胶囊输入自定义色号，开启关键词标记，并添加最多 5 个 JD 关键词
 13. 保存设置
 
 ## 隐私与数据处理

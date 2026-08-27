@@ -4,6 +4,7 @@
   TITLE_SIGNAL_KEYS,
   TITLE_SIGNAL_ORDER,
   ItemNames,
+  PROVIDER_RECOMMENDED_MODELS,
   PROVIDERS,
   findKeywordMatches,
   getContrastTextColor,
@@ -107,6 +108,7 @@ const els = {
   settingApiKey: $('#setting-apikey'),
   settingModel: $('#setting-model'),
   settingModelList: $('#setting-model-list'),
+  settingModelRecommendationHint: $('#setting-model-recommendation-hint'),
   settingMaxTokens: $('#setting-maxtokens'),
   settingTemperature: $('#setting-temperature'),
   settingTimeout: $('#setting-timeout'),
@@ -2789,13 +2791,31 @@ function hydrateProviderProfiles(config) {
 
 function applyProviderProfileToForm(providerId) {
   const profile = currentConfig?.providerProfiles?.[providerId] || createDefaultProviderProfile(providerId);
+  const recommendedModel = PROVIDER_RECOMMENDED_MODELS[providerId] || '';
   const savedModels = normalizeModelList(profile.modelIds, profile.modelId);
+  const hasOnlyLegacyDefault = savedModels.length === 1
+    && savedModels[0] === 'gpt-4o'
+    && profile.modelId === 'gpt-4o';
+
+  if (recommendedModel && !savedModels.includes(recommendedModel)) {
+    savedModels.unshift(recommendedModel);
+  }
+
+  const activeModel = hasOnlyLegacyDefault
+    ? recommendedModel
+    : profile.modelId || savedModels[0] || recommendedModel;
 
   els.settingProvider.value = providerId;
   els.settingBaseUrl.value = profile.baseUrl || '';
   els.settingApiKey.value = profile.apiKey || '';
-  els.settingModel.value = profile.modelId || '';
+  els.settingModel.value = activeModel;
   els.settingModelList.value = savedModels.join('\n');
+  if (els.settingModelRecommendationHint) {
+    const provider = PROVIDERS.find(item => item.id === providerId);
+    els.settingModelRecommendationHint.textContent = recommendedModel
+      ? `Starter model for ${provider?.name || providerId}: ${recommendedModel}. You can edit this list or add more saved models.`
+      : 'Saved models remain editable. Add any model supported by this provider.';
+  }
   els.settingMaxTokens.value = profile.maxTokens || 4096;
   els.settingTemperature.value = profile.temperature ?? 0.1;
   els.settingTimeout.value = ((profile.timeoutMs || 60000) / 1000).toString();
@@ -2831,11 +2851,12 @@ function readProviderForm() {
 
 function createDefaultProviderProfile(providerId) {
   const provider = PROVIDERS.find(item => item.id === providerId);
+  const recommendedModel = PROVIDER_RECOMMENDED_MODELS[providerId] || DEFAULT_PROVIDER_MODEL();
   return {
     baseUrl: provider?.baseUrl || '',
     apiKey: '',
-    modelId: DEFAULT_PROVIDER_MODEL(),
-    modelIds: [DEFAULT_PROVIDER_MODEL()],
+    modelId: recommendedModel,
+    modelIds: [recommendedModel],
     maxTokens: 4096,
     temperature: 0.1,
     timeoutMs: 60000,
@@ -2844,7 +2865,7 @@ function createDefaultProviderProfile(providerId) {
 }
 
 function DEFAULT_PROVIDER_MODEL() {
-  return 'gpt-4o';
+  return PROVIDER_RECOMMENDED_MODELS.openai || 'gpt-4o';
 }
 
 function applyAnalysisSettingsToForm() {

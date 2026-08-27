@@ -343,12 +343,13 @@
 
         <div class="form-group">
           <label for="setting-model">Active model</label>
-          <input type="text" id="setting-model" class="form-input" placeholder="gpt-4o" />
+          <input type="text" id="setting-model" class="form-input" placeholder="gpt-5-mini" />
         </div>
 
         <div class="form-group">
           <label for="setting-model-list">Saved models (one per line)</label>
-          <textarea id="setting-model-list" class="form-input form-textarea" placeholder="gpt-4o&#10;gpt-4.1-mini"></textarea>
+          <textarea id="setting-model-list" class="form-input form-textarea" placeholder="gpt-5-mini&#10;gpt-4.1-mini"></textarea>
+          <p class="field-hint" id="setting-model-recommendation-hint">Saved models remain editable. Add any model supported by this provider.</p>
         </div>
 
         <div class="inline-actions">
@@ -541,7 +542,11 @@
 
           <fieldset class="settings-fieldset">
             <legend>JD keyword markers</legend>
-            <p class="field-hint">Add up to 5 keywords. When an analyzed JD contains one, it is shown as a separate title capsule.</p>
+            <label class="checkbox-row keyword-toggle-row" for="setting-title-signal-keyword">
+              <input type="checkbox" id="setting-title-signal-keyword" data-title-signal="keyword" />
+              <span>Show matched keywords beside the job title</span>
+            </label>
+            <p class="field-hint">Optional. Turn this on after adding keywords. When an analyzed JD contains one, it is shown as a separate title capsule.</p>
             <div class="keyword-input-grid">
               <input type="text" class="form-input" data-jd-keyword="1" maxlength="80" placeholder="SQL" aria-label="JD keyword 1" />
               <input type="text" class="form-input" data-jd-keyword="2" maxlength="80" placeholder="Python" aria-label="JD keyword 2" />

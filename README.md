@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/feature/v0.3.0-title-signals"><img alt="Preview v0.3.0" src="https://img.shields.io/badge/preview-v0.3.0-9a4a30?style=flat-square" /></a>
+  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/feature/v0.3.1-title-signals"><img alt="Preview v0.3.1" src="https://img.shields.io/badge/preview-v0.3.1-9a4a30?style=flat-square" /></a>
   <img alt="Chrome Manifest V3" src="https://img.shields.io/badge/Chrome-MV3-9a4a30?style=flat-square" />
   <img alt="Vite 5" src="https://img.shields.io/badge/Vite-5-9a4a30?style=flat-square" />
   <a href="./LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-9a4a30?style=flat-square" /></a>
@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/feature/v0.3.0-title-signals"><strong>Test v0.3.0 branch</strong></a>
+  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/feature/v0.3.1-title-signals"><strong>Test v0.3.1 branch</strong></a>
   &nbsp;&nbsp;|&nbsp;&nbsp;
   <a href="#installation">Installation</a>
   &nbsp;&nbsp;|&nbsp;&nbsp;
@@ -26,7 +26,7 @@
 </p>
 
 > [!NOTE]
-> `v0.3.0` is currently published on the `feature/v0.3.0-title-signals` branch for testing. It has not been merged into `main` and does not replace the stable `v0.2.0` release yet.
+> `v0.3.1` is currently published on the `feature/v0.3.1-title-signals` branch for testing. It has not been merged into `main` and does not replace the stable `v0.2.0` release yet.
 
 > [!IMPORTANT]
 > **Current LinkedIn compatibility**
@@ -53,14 +53,16 @@ Match scores and job signals stay inside LinkedIn while the side panel keeps the
 | Provider choice | Supports OpenAI, Anthropic, Gemini, OpenRouter, Poe, and custom OpenAI-compatible endpoints. |
 | Netherlands sponsorship context | Checks organisation names against a bundled IND-derived dataset containing 12,927 unique names. |
 
-## What's New In v0.3.0 (test branch)
+## What's New In v0.3.1 (test branch)
 
 - Added separate title capsules for `JD language` and `Required language`, with `KM` and `Experience` shown as independent signals
 - Added `Default`, `Color-blind friendly`, and `Custom colors` schemes in Settings
 - Custom mode accepts a separate hex color for every capsule: KM, JD language, required language, experience years, and JD keyword
 - Added checkboxes for choosing which of the four core title signals are visible
 - Added up to five JD keyword matches, with `Tag`, `Bracket`, and `Spark` marker styles
+- Keyword markers are now opt-in and start unchecked; adding keywords alone does not show them until `Show matched keywords beside the job title` is enabled
 - Existing analyzed jobs reuse their cached JD excerpt when keyword settings change, so the model does not need to run again
+- Selecting OpenAI, Anthropic, or Gemini seeds the editable `Saved models` list with a fixed low-cost starter model for this preview: `gpt-5-mini`, `claude-haiku-4-5-20251001`, or `gemini-3.5-flash-lite`. You can edit the list or add more models at any time
 - Kept the LinkedIn compatibility boundary explicit: use classic Jobs search, switch back from AI-powered search, then refresh the page
 
 ### Title capsule color legend
@@ -75,7 +77,45 @@ The default set uses one color per signal. The match-score badge is separate and
 | Experience years | `Exp: 3y+` | Amber `#B45309` | Orange `#E69F00` |
 | JD keyword | `KEY: SQL` | Rose `#BE123C` | Mauve `#CC79A7` |
 
-In Settings → Title signals, choose the color set from the dropdown. The color-blind-friendly set is designed with stronger hue separation; Custom colors lets you enter a hex code for each capsule independently. The four core signals are controlled with checkboxes. Keyword markers appear after an analyzed JD matches one of the five configured keywords.
+In Settings → Title signals, choose the color set from the dropdown. The color-blind-friendly set is designed with stronger hue separation; Custom colors lets you enter a hex code for each capsule independently. The four core signals are controlled with checkboxes. Keyword markers are off by default and appear only after you enable them and an analyzed JD matches one of the five configured keywords.
+
+### v0.3.1 walkthrough screenshots
+
+These screenshots show the title signal controls, the optional keyword switch and the independent custom-color inputs:
+
+![Title signals beside LinkedIn job titles](./docs/assets/v0.3.1-title-signals-settings.png)
+
+![Optional JD keyword markers](./docs/assets/v0.3.1-keyword-markers.png)
+
+![Independent custom capsule colors](./docs/assets/v0.3.1-custom-colors.png)
+
+### v0.3.1 UI display examples
+
+The same signals are rendered in the classic LinkedIn search/detail surface and remain available in the side-panel analysis, list mode, and Library history. Saving the settings applies the display configuration to the current page after refresh.
+
+![LinkedIn title capsules in classic search and detail](./docs/assets/v0.3.1-linkedin-title-capsules.png)
+
+![Title capsules in the current-job analysis panel](./docs/assets/v0.3.1-analysis-panel.png)
+
+![Title capsules in list mode](./docs/assets/v0.3.1-list-mode.png)
+
+![Title capsules in Library history](./docs/assets/v0.3.1-library.png)
+
+The screenshot below shows the enabled-and-matched state: two of five keywords are configured, `Spark` is selected, and a matching `BI` term appears as its own rose capsule beside each matching job title. Configured keywords that are not found in the captured JD do not appear.
+
+![Matched JD keyword shown with the Spark marker](./docs/assets/v0.3.1-keyword-match.png)
+
+### Fixed provider starter models in this preview
+
+The provider switch does not fetch models dynamically. This preview inserts the following starter value into the editable Saved models field when the provider is selected:
+
+| Provider | Starter model | Official reference |
+| --- | --- | --- |
+| OpenAI | `gpt-5-mini` | [OpenAI pricing](https://developers.openai.com/api/docs/pricing) |
+| Anthropic | `claude-haiku-4-5-20251001` | [Claude models overview](https://docs.anthropic.com/en/docs/about-claude/models/overview) |
+| Gemini | `gemini-3.5-flash-lite` | [Gemini 3.5 Flash-Lite](https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash-lite) |
+
+The Saved models textarea remains editable. Keep the starter model, replace it, or add additional model IDs with `Add active model`.
 
 ## What's New In v0.2.0
 
@@ -320,7 +360,7 @@ Common mistake to avoid:
 - GitHub source archives are not the same as the built extension package.
 - If someone downloads the repository source and loads the root folder instead of `dist/`, resume parsing for `PDF` or `DOCX` files may fail.
 
-For the `v0.3.0` test branch, build from `feature/v0.3.0-title-signals` with Option A. The branch intentionally has no official release asset until testing is complete.
+For the `v0.3.1` test branch, build from `feature/v0.3.1-title-signals` with Option A. The branch intentionally has no official release asset until testing is complete.
 
 ## Configuration
 
@@ -331,13 +371,13 @@ After opening the side panel:
 3. choose a provider
 4. enter the provider-specific `Base URL`
 5. enter the provider-specific `API key`
-6. choose an `Active model`
-7. optionally add multiple saved models
+6. choose an `Active model`; selecting OpenAI, Anthropic, or Gemini seeds the editable `Saved models` field with this preview's fixed low-cost starter
+7. edit `Saved models` or add multiple models with `Add active model` when needed
 8. choose an `Analysis mode`
 9. choose whether `I need employer sponsorship`
 10. optionally enable `Full custom scoring`
 11. open `Title signals` and choose the visible capsules
-12. optionally select a color scheme, enter independent custom hex colors, and add up to five JD keywords
+12. optionally select a color scheme, enter independent custom hex colors, enable keyword markers, and add up to five JD keywords
 13. save settings
 
 ## Privacy and Data Handling

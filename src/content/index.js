@@ -49,7 +49,7 @@ const DEFAULT_TITLE_DISPLAY_SETTINGS = Object.freeze({
     [TITLE_SIGNAL_KEYS.JD_LANGUAGE]: true,
     [TITLE_SIGNAL_KEYS.REQUIRED_LANGUAGE]: true,
     [TITLE_SIGNAL_KEYS.EXPERIENCE]: true,
-    [TITLE_SIGNAL_KEYS.KEYWORD]: true,
+    [TITLE_SIGNAL_KEYS.KEYWORD]: false,
   }),
   customColors: Object.freeze({ ...TITLE_COLOR_SCHEMES.default }),
   keywordList: Object.freeze([]),
@@ -178,10 +178,14 @@ function normalizeTitleDisplaySettings(settings) {
   return {
     colorScheme,
     visibleSignals: Object.fromEntries(
-      Object.keys(DEFAULT_TITLE_DISPLAY_SETTINGS.visibleSignals).map(key => [
-        key,
-        source.visibleSignals?.[key] !== false,
-      ]),
+      Object.keys(DEFAULT_TITLE_DISPLAY_SETTINGS.visibleSignals).map(key => {
+        const configuredValue = source.visibleSignals?.[key];
+        const defaultValue = DEFAULT_TITLE_DISPLAY_SETTINGS.visibleSignals[key];
+        return [
+          key,
+          configuredValue === undefined ? defaultValue : configuredValue !== false,
+        ];
+      }),
     ),
     customColors,
     keywordList: normalizeKeywordList(source.keywordList),

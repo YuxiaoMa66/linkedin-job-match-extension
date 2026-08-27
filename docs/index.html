@@ -47,7 +47,7 @@
           >
             GitHub
           </a>
-          <a class="language-link" href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/blob/main/README.zh-CN.md">中文</a>
+          <a class="language-link" href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/blob/feature/v0.3.1-title-signals/README.zh-CN.md">中文</a>
           <button
             class="menu-toggle"
             id="menu-toggle"
@@ -66,7 +66,7 @@
         <a href="#title-signals">Title signals</a>
         <a href="#install">Install</a>
         <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension" target="_blank" rel="noreferrer">GitHub</a>
-        <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/blob/main/README.zh-CN.md">中文 README</a>
+        <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/blob/feature/v0.3.1-title-signals/README.zh-CN.md">中文 README</a>
       </nav>
     </header>
 
@@ -170,10 +170,10 @@
       <section class="title-signals section-pad" id="title-signals" aria-labelledby="title-signals-title">
         <div class="container">
           <div class="section-lead reveal">
-            <p class="section-index">v0.3.0 preview · title signals</p>
+            <p class="section-index">v0.3.1 preview · title signals</p>
             <h2 id="title-signals-title">Make the useful details glanceable.</h2>
             <p>
-              Language, experience, sponsorship, and the JD terms you care about can sit directly beside the job title — each in its own capsule, each with a color you can control.
+              Language, experience, sponsorship, and the JD terms you care about can sit directly beside the job title — each in its own capsule, each with a color you can control. Keyword markers are opt-in, so the default view stays quiet.
             </p>
           </div>
 
@@ -186,7 +186,6 @@
                 <span class="title-pill title-pill-jd">JD: English</span>
                 <span class="title-pill title-pill-lang">Lang: Dutch / English</span>
                 <span class="title-pill title-pill-exp">Exp: 3y+</span>
-                <span class="title-pill title-pill-keyword">KEY: SQL</span>
               </h3>
               <p class="title-preview-caption">A compact reading layer for the classic LinkedIn Jobs surface.</p>
             </article>
@@ -218,8 +217,122 @@
           <div class="title-settings-note reveal" style="--reveal-delay: 160ms">
             <span class="title-settings-icon" aria-hidden="true">↳</span>
             <p>
-              In Settings, choose Default, Color-blind friendly, or Custom colors. Custom mode accepts a separate hex code for every capsule; checkboxes control the four core signals, and three marker styles shape keyword matches.
+              In Settings, choose Default, Color-blind friendly, or Custom colors. Custom mode accepts a separate hex code for every capsule; checkboxes control the four core signals, and the keyword switch plus three marker styles shape optional keyword matches.
             </p>
+          </div>
+
+          <div class="title-screenshot-grid">
+            <figure class="title-screenshot title-screenshot-wide reveal">
+              <img
+                src="assets/v0.3.1-title-signals-settings.png"
+                alt="LinkedIn job titles with separate signal capsules beside the side panel Title signals settings."
+                width="2868"
+                height="1536"
+                loading="lazy"
+                decoding="async"
+              />
+              <figcaption>Title signals beside a classic LinkedIn job title</figcaption>
+            </figure>
+            <figure class="title-screenshot reveal" style="--reveal-delay: 80ms">
+              <img
+                src="assets/v0.3.1-keyword-markers.png"
+                alt="JD keyword marker settings with five inputs and Tag, Bracket, and Spark choices."
+                width="848"
+                height="784"
+                loading="lazy"
+                decoding="async"
+              />
+              <figcaption>Keyword markers are optional</figcaption>
+            </figure>
+            <figure class="title-screenshot reveal" style="--reveal-delay: 160ms">
+              <img
+                src="assets/v0.3.1-custom-colors.png"
+                alt="Custom colors selected with an independent hex input for each title capsule."
+                width="842"
+                height="1254"
+                loading="lazy"
+                decoding="async"
+              />
+              <figcaption>Each capsule keeps its own color</figcaption>
+            </figure>
+          </div>
+
+          <div class="provider-starter-note reveal" style="--reveal-delay: 120ms">
+            <div>
+              <p class="provider-starter-kicker">v0.3.1 provider starters</p>
+              <h3>Start with a fixed low-cost model. Keep the list yours.</h3>
+              <p>Choosing OpenAI, Anthropic, or Gemini inserts a starter into Saved models. The field stays editable, and you can add more model IDs whenever you want.</p>
+            </div>
+            <div class="provider-starter-list" aria-label="Fixed provider starter models">
+              <span><strong>OpenAI</strong><code>gpt-5-mini</code></span>
+              <span><strong>Anthropic</strong><code>claude-haiku-4-5-20251001</code></span>
+              <span><strong>Gemini</strong><code>gemini-3.5-flash-lite</code></span>
+            </div>
+          </div>
+
+          <div class="ui-showcase">
+            <div class="ui-showcase-lead reveal">
+              <p class="section-index">v0.3.1 in practice</p>
+              <h3>One signal layer, four useful places.</h3>
+              <p>The same title capsules stay readable across the LinkedIn page, the current-job analysis view, list mode, and Library. The final example shows the optional keyword layer after a JD match: only matching terms become title capsules. Settings changes apply after you save and refresh the page.</p>
+            </div>
+            <div class="ui-showcase-grid">
+              <figure class="ui-showcase-card ui-showcase-card-wide reveal">
+                <img
+                  src="assets/v0.3.1-linkedin-title-capsules.png"
+                  alt="LinkedIn classic Jobs search and detail view with separate KM, JD language, and required language capsules."
+                  width="2032"
+                  height="1596"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <figcaption>LinkedIn classic search and job detail</figcaption>
+              </figure>
+              <figure class="ui-showcase-card reveal" style="--reveal-delay: 80ms">
+                <img
+                  src="assets/v0.3.1-analysis-panel.png"
+                  alt="LinkedIn Job Match analysis panel with JD language and required language capsules beside the title."
+                  width="832"
+                  height="1542"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <figcaption>Current-job analysis view</figcaption>
+              </figure>
+              <figure class="ui-showcase-card reveal" style="--reveal-delay: 120ms">
+                <img
+                  src="assets/v0.3.1-list-mode.png"
+                  alt="LinkedIn Job Match list mode with title capsules on cached job cards."
+                  width="814"
+                  height="1618"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <figcaption>List mode keeps signals on each card</figcaption>
+              </figure>
+              <figure class="ui-showcase-card reveal" style="--reveal-delay: 160ms">
+                <img
+                  src="assets/v0.3.1-library.png"
+                  alt="LinkedIn Job Match Library history with title capsules on saved analysis cards."
+                  width="780"
+                  height="1180"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <figcaption>Library history and saved positions</figcaption>
+              </figure>
+              <figure class="ui-showcase-card ui-showcase-card-wide reveal" style="--reveal-delay: 200ms">
+                <img
+                  src="assets/v0.3.1-keyword-match.png"
+                  alt="Classic LinkedIn view and settings panel showing two of five configured keywords, Spark selected, and a matched BI keyword capsule beside job titles."
+                  width="2844"
+                  height="1592"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <figcaption>Optional keyword layer after a JD match: `Spark` turns the matched term into a separate title capsule</figcaption>
+              </figure>
+            </div>
           </div>
         </div>
       </section>
