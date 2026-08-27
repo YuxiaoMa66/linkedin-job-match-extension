@@ -12,6 +12,21 @@ import {
   getAiJobIdFromDetail,
   getAiListCards,
 } from './linkedin-ai-adapter.js';
+import {
+  INDEED_LIST_TITLE_SELECTOR,
+  extractIndeedJDText,
+  extractIndeedJobData,
+  getIndeedCardCompany,
+  getIndeedCardLocation,
+  getIndeedCardTitle,
+  getIndeedCardTitleTarget,
+  getIndeedDetailBadgeTarget,
+  getIndeedDetailTitleTarget,
+  getIndeedJobIdFromCard,
+  getIndeedJobIdFromDetail,
+  getIndeedListCards,
+  isIndeedPage,
+} from './indeed-adapter.js';
 
 const Actions = Object.freeze({
   JD_EXTRACTED: 'JD_EXTRACTED',
@@ -71,7 +86,7 @@ const DEFAULT_TITLE_DISPLAY_SETTINGS = Object.freeze({
   keywordStyle: 'tag',
 });
 
-const CONTENT_SCRIPT_READY_KEY = '__ljmContentScriptReadyV040__';
+const CONTENT_SCRIPT_READY_KEY = '__ljmContentScriptReadyV050__';
 
 const LIST_ITEM_SELECTORS = [
   '.job-card-container',
@@ -329,10 +344,18 @@ function extractFirst(selectors, context = document) {
 }
 
 function getPageMode() {
+  if (isIndeedPage(document, window.location.href)) {
+    return 'indeed';
+  }
+
   return detectLinkedInPageMode(document, window.location.href);
 }
 
 function getListCards(mode = getPageMode()) {
+  if (mode === 'indeed') {
+    return getIndeedListCards(document);
+  }
+
   if (mode === 'ai') {
     return getAiListCards(document);
   }
@@ -341,6 +364,10 @@ function getListCards(mode = getPageMode()) {
 }
 
 function extractJDText() {
+  if (getPageMode() === 'indeed') {
+    return extractIndeedJDText(document);
+  }
+
   if (getPageMode() === 'ai') {
     return extractAiJDText(document);
   }
@@ -374,7 +401,26 @@ function getCurrentJobId() {
     return pathMatch[1];
   }
 
-  if (getPageMode() === 'ai') {
+  const mode = getPageMode();
+
+  if (mode === 'indeed') {
+    const detailJobId = getIndeedJobIdFromDetail(document, window.location.href);
+    if (detailJobId) {
+      return detailJobId;
+    }
+
+    const selectedIndeedCard = getIndeedListCards(document).find(card => {
+      const link = card.querySelector(INDEED_LIST_TITLE_SELECTOR);
+      return link?.getAttribute('aria-current') === 'true'
+        || link?.getAttribute('aria-pressed') === 'true';
+    });
+    const selectedIndeedJobId = getIndeedJobIdFromCard(selectedIndeedCard);
+    if (selectedIndeedJobId) {
+      return selectedIndeedJobId;
+    }
+  }
+
+  if (mode === 'ai') {
     const detailJobId = getAiJobIdFromDetail(document);
     if (detailJobId) {
       return detailJobId;
@@ -401,6 +447,10 @@ function getCurrentJobId() {
 }
 
 function extractJobData() {
+  if (getPageMode() === 'indeed') {
+    return extractIndeedJobData(document, window.location.href);
+  }
+
   if (getPageMode() === 'ai') {
     return {
       ...extractAiJobData(document, window.location.href),
@@ -506,6 +556,11 @@ function looksLikeLocation(value) {
 }
 
 function getJobIdFromCard(card) {
+  const indeedId = getIndeedJobIdFromCard(card);
+  if (indeedId) {
+    return indeedId;
+  }
+
   const aiId = getAiJobIdFromCard(card);
   if (aiId) {
     return aiId;
@@ -535,6 +590,10 @@ function getJobIdFromCard(card) {
 }
 
 function getCardTitle(card, mode = getPageMode()) {
+  if (mode === 'indeed') {
+    return getIndeedCardTitle(card) || 'Unknown Title';
+  }
+
   if (mode === 'ai') {
     return getAiCardTitle(card) || 'Unknown Title';
   }
@@ -544,6 +603,10 @@ function getCardTitle(card, mode = getPageMode()) {
 }
 
 function getCardCompany(card, mode = getPageMode()) {
+  if (mode === 'indeed') {
+    return getIndeedCardCompany(card);
+  }
+
   if (mode === 'ai') {
     return getAiCardCompany(card);
   }
@@ -553,6 +616,10 @@ function getCardCompany(card, mode = getPageMode()) {
 }
 
 function getCardLocation(card, mode = getPageMode()) {
+  if (mode === 'indeed') {
+    return getIndeedCardLocation(card);
+  }
+
   if (mode === 'ai') {
     return getAiCardLocation(card);
   }
@@ -572,6 +639,7 @@ function getJobsList() {
 
     uniqueJobs.set(jobId, {
       jobId,
+      sourceType: mode === 'indeed' ? 'indeed' : 'linkedin',
       title: getCardTitle(card, mode),
       company: getCardCompany(card, mode),
       location: getCardLocation(card, mode),
@@ -592,12 +660,20 @@ function focusJob(jobId) {
 
     const clickable = mode === 'ai'
       ? card
-      : card.querySelector(`a[href*="/jobs/view/${jobId}"], a[href*="currentJobId=${jobId}"]`)
+      : mode === 'indeed'
+        ? card.querySelector(INDEED_LIST_TITLE_SELECTOR) || card
+        : card.querySelector(`a[href*="/jobs/view/${jobId}"], a[href*="currentJobId=${jobId}"]`)
         || card.querySelector('a')
         || card;
 
     clickable.scrollIntoView({ behavior: 'smooth', block: 'center' });
     window.setTimeout(() => {
+      if (mode === 'indeed') {
+        clickable.focus?.();
+        activateClickable(clickable);
+        return;
+      }
+
       if (mode !== 'ai') {
         activateClickable(clickable);
         return;
@@ -660,7 +736,9 @@ function injectScoreBadge(jobId, score) {
 
     const anchor = mode === 'ai'
       ? getAiCardTitleTarget(card)
-      : card.querySelector('.job-card-container__primary-description, .job-card-container__metadata-wrapper, .artdeco-entity-lockup__subtitle')
+      : mode === 'indeed'
+        ? getIndeedCardTitleTarget(card)
+        : card.querySelector('.job-card-container__primary-description, .job-card-container__metadata-wrapper, .artdeco-entity-lockup__subtitle')
         || card.querySelector('.job-card-list__title')?.parentElement
         || card;
 
@@ -682,6 +760,10 @@ function injectScoreBadge(jobId, score) {
 }
 
 function getCardTitleAnchor(card, mode = getPageMode()) {
+  if (mode === 'indeed') {
+    return getIndeedCardTitleTarget(card);
+  }
+
   if (mode === 'ai') {
     return getAiCardTitleTarget(card);
   }
@@ -731,9 +813,12 @@ function injectDetailBadge(jobId, score) {
     return;
   }
 
-  const target = getPageMode() === 'ai'
+  const mode = getPageMode();
+  const target = mode === 'ai'
     ? getAiDetailBadgeTarget(document)
-    : document.querySelector(DETAIL_BADGE_SELECTOR);
+    : mode === 'indeed'
+      ? getIndeedDetailBadgeTarget(document)
+      : document.querySelector(DETAIL_BADGE_SELECTOR);
   if (!target) {
     return;
   }
@@ -755,9 +840,12 @@ function injectDetailMetaBadges(jobId, badgeModels) {
     return;
   }
 
-  const titleTarget = getPageMode() === 'ai'
+  const mode = getPageMode();
+  const titleTarget = mode === 'ai'
     ? getAiDetailTitleTarget(document)
-    : document.querySelector(TITLE_SELECTORS.join(', '));
+    : mode === 'indeed'
+      ? getIndeedDetailTitleTarget(document)
+      : document.querySelector(TITLE_SELECTORS.join(', '));
   if (!titleTarget) {
     return;
   }
@@ -798,12 +886,13 @@ function getBadgeColor(score) {
 function injectBadgeStyles() {
   document.getElementById('ai-match-badge-styles')?.remove();
   document.getElementById('ai-match-badge-styles-v030')?.remove();
-  if (document.getElementById('ai-match-badge-styles-v040')) {
+  document.getElementById('ai-match-badge-styles-v040')?.remove();
+  if (document.getElementById('ai-match-badge-styles-v050')) {
     return;
   }
 
   const style = document.createElement('style');
-  style.id = 'ai-match-badge-styles-v040';
+  style.id = 'ai-match-badge-styles-v050';
   style.textContent = `
     .ai-match-badge,
     .ai-match-detail-badge,

@@ -3,6 +3,7 @@ import {
   DegradationTrigger,
   ErrorTypes,
   findKeywordMatches,
+  normalizeSourceType,
   normalizeTitleDisplaySettings,
 } from '../shared/constants.js';
 import { loadConfig, saveConfig } from './config-manager.js';
@@ -181,7 +182,7 @@ async function tryInjectScore(tabId, jobId, score) {
   }
 }
 
-async function ensureLinkedInContentScript(tabId) {
+async function ensureContentScript(tabId) {
   if (!tabId) {
     return false;
   }
@@ -201,7 +202,7 @@ async function sendTabMessageWithInjection(tabId, message) {
   try {
     return await chrome.tabs.sendMessage(tabId, message);
   } catch (error) {
-    const injected = await ensureLinkedInContentScript(tabId);
+    const injected = await ensureContentScript(tabId);
     if (!injected) {
       throw error;
     }
@@ -215,7 +216,7 @@ function buildAnalysisPayload(result, jdData, extra = {}) {
   return {
     ...result,
     jobId: jdData?.jobId || null,
-    sourceType: jdData?.sourceType || 'linkedin',
+    sourceType: normalizeSourceType(jdData?.sourceType),
     jobTitle: jdData?.title || '',
     company: jdData?.company || '',
     location: jdData?.location || '',
@@ -230,7 +231,7 @@ function buildCachedResponse(entry, includeResult = false, titleDisplaySettings 
   const normalizedTitleSettings = normalizeTitleDisplaySettings(titleDisplaySettings);
   const response = {
     jobId: entry.jobId,
-    sourceType: entry.summary?.sourceType || 'linkedin',
+    sourceType: normalizeSourceType(entry.summary?.sourceType),
     score: entry.summary?.score ?? null,
     analyzedAt: entry.summary?.analyzedAt || null,
     title: entry.summary?.title || '',
@@ -265,7 +266,7 @@ function buildSavedPositionResponse(position) {
   return {
     positionKey: position.positionKey,
     jobId: position.jobId,
-    sourceType: position.sourceType || 'linkedin',
+    sourceType: normalizeSourceType(position.sourceType),
     title: position.title || '',
     company: position.company || '',
     location: position.location || '',
@@ -549,7 +550,7 @@ async function handleBatchAnalysis(requestPayload, sendResponse) {
 
     const activeTab = await getActiveTab();
     if (!activeTab?.id) {
-      throw new Error('Cannot connect to the active LinkedIn tab.');
+      throw new Error('Cannot connect to the active job page.');
     }
 
     const listResponse = await sendTabMessageWithInjection(activeTab.id, { type: Actions.GET_JOB_LIST });
@@ -591,6 +592,7 @@ async function handleBatchAnalysis(requestPayload, sendResponse) {
               cachedEntry.data,
               {
                 jobId: job.jobId,
+                sourceType: normalizeSourceType(cachedEntry.summary?.sourceType || job.sourceType),
                 title: cachedEntry.summary?.title || job.title,
                 company: cachedEntry.summary?.company || job.company,
                 location: cachedEntry.summary?.location || '',
@@ -703,7 +705,7 @@ async function waitForJobDetails(tabId, jobId) {
         return jdData;
       }
     } catch {
-      // Keep waiting while LinkedIn re-renders.
+      // Keep waiting while the job page re-renders.
     }
   }
 
@@ -850,7 +852,7 @@ async function handleToggleSavePosition(payload, sendResponse) {
 async function handleDeleteSavedPosition(payload, sendResponse) {
   try {
     const jobId = payload?.jobId;
-    const sourceType = payload?.sourceType === 'inserted' ? 'inserted' : 'linkedin';
+    const sourceType = normalizeSourceType(payload?.sourceType);
     if (!jobId) {
       sendResponse({ ok: false, error: 'Missing position id.' });
       return;
@@ -924,8 +926,9 @@ async function handleGetPositionLibrary(sendResponse) {
     }
 
     const partitionBySource = items => ({
-      linkedin: items.filter(item => (item.sourceType || 'linkedin') === 'linkedin'),
-      inserted: items.filter(item => (item.sourceType || 'linkedin') === 'inserted'),
+      linkedin: items.filter(item => normalizeSourceType(item.sourceType) === 'linkedin'),
+      indeed: items.filter(item => normalizeSourceType(item.sourceType) === 'indeed'),
+      inserted: items.filter(item => normalizeSourceType(item.sourceType) === 'inserted'),
     });
 
     sendResponse({

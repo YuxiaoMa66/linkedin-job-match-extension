@@ -8,10 +8,12 @@
   PROVIDERS,
   findKeywordMatches,
   getContrastTextColor,
+  getSourceLabel,
   getTitleDisplayColors,
   normalizeHexColor,
   normalizeKeywordList,
   normalizeModelList,
+  normalizeSourceType,
   normalizeTitleDisplaySettings,
 } from '../shared/constants.js';
 import {
@@ -151,6 +153,7 @@ let resumeText = null;
 let currentConfig = null;
 let currentListJobs = [];
 let currentListSignature = '';
+let currentListSourceType = 'linkedin';
 let manualJobs = [];
 let visibleJobCount = 10;
 let isAnalyzing = false;
@@ -160,7 +163,7 @@ let currentResultJobId = null;
 let currentManualEditingId = null;
 let currentResultPayload = null;
 let savedPositionsMap = new Map();
-let historyEntries = { linkedin: [], inserted: [] };
+let historyEntries = { linkedin: [], indeed: [], inserted: [] };
 let libraryMode = 'history';
 let librarySource = 'linkedin';
 let manualDetectMode = 'rule';
@@ -645,9 +648,10 @@ async function refreshPositionLibrary() {
     }
 
     manualJobs = Array.isArray(response.data?.manualJobs) ? response.data.manualJobs : [];
-    historyEntries = response.data?.history || { linkedin: [], inserted: [] };
+    historyEntries = response.data?.history || { linkedin: [], indeed: [], inserted: [] };
     const savedItems = [
       ...((response.data?.saved?.linkedin) || []),
+      ...((response.data?.saved?.indeed) || []),
       ...((response.data?.saved?.inserted) || []),
     ];
     savedPositionsMap = new Map(savedItems.map(item => [buildPositionKey(item.jobId, item.sourceType), item]));
@@ -712,24 +716,27 @@ function renderLibrary() {
   const sourceItems = (historyEntries?.[librarySource] && libraryMode === 'history')
     ? historyEntries[librarySource]
     : (libraryMode === 'saved'
-      ? [...savedPositionsMap.values()].filter(item => (item.sourceType || 'linkedin') === librarySource)
+      ? [...savedPositionsMap.values()].filter(item => normalizeSourceType(item.sourceType) === librarySource)
       : []);
+
+  const sourceLabel = getSourceLabel(librarySource);
 
   if (!sourceItems.length) {
     els.librarySummary.textContent = libraryMode === 'saved'
-      ? `No saved ${librarySource} positions yet.`
-      : `No ${librarySource} history yet for the current resume.`;
+      ? `No saved ${sourceLabel} positions yet.`
+      : `No ${sourceLabel} history yet for the current resume.`;
     els.libraryList.innerHTML = '<p class="hint-text">Nothing to show here yet.</p>';
     return;
   }
 
   els.librarySummary.textContent = libraryMode === 'saved'
-    ? `${sourceItems.length} saved ${librarySource} positions.`
-    : `${sourceItems.length} analyzed ${librarySource} jobs for the current resume.`;
+    ? `${sourceItems.length} saved ${sourceLabel} positions.`
+    : `${sourceItems.length} analyzed ${sourceLabel} jobs for the current resume.`;
 
   els.libraryList.innerHTML = sourceItems.map((item, index) => {
+    const sourceType = normalizeSourceType(item.sourceType || librarySource);
     const score = item.score;
-    const isSaved = savedPositionsMap.has(buildPositionKey(item.jobId, item.sourceType || librarySource));
+    const isSaved = savedPositionsMap.has(buildPositionKey(item.jobId, sourceType));
     const titleBadges = buildJdTitleBadges({
       jdLanguage: item.jdLanguage || item.result?.metadata?.jdLanguage || null,
       requiredExperience: item.requiredExperience || item.result?.metadata?.requiredExperience || null,
@@ -741,15 +748,15 @@ function renderLibrary() {
     });
 
     return `
-      <div class="job-list-item${isSaved ? ' saved-item' : ''}" data-job-id="${escapeHtml(item.jobId)}" data-source-type="${escapeHtml(item.sourceType || librarySource)}" role="button" tabindex="0">
+      <div class="job-list-item${isSaved ? ' saved-item' : ''}" data-job-id="${escapeHtml(item.jobId)}" data-source-type="${escapeHtml(sourceType)}" role="button" tabindex="0">
         <div class="job-row-top">
           <div>
-            <div class="job-index">#${index + 1} <span class="job-source-pill">${escapeHtml((item.sourceType || librarySource) === 'inserted' ? 'Inserted' : 'LinkedIn')}</span></div>
+            <div class="job-index">#${index + 1} <span class="job-source-pill">${escapeHtml(getSourceLabel(sourceType))}</span></div>
             <div class="job-title">${escapeHtml(item.title || 'Untitled job')}${titleBadges}</div>
           </div>
           <div class="job-item-actions">
             ${(typeof score === 'number' || libraryMode === 'saved')
-              ? buildSaveStarButton(item.jobId, item.sourceType || librarySource, isSaved)
+              ? buildSaveStarButton(item.jobId, sourceType, isSaved)
               : ''}
             ${typeof score === 'number'
               ? `<span class="job-score ${getScoreClass(score)}">${Math.round(score)}%</span>`
@@ -759,8 +766,8 @@ function renderLibrary() {
         <div class="job-company">${escapeHtml(item.company || 'Unknown company')}</div>
         <div class="job-state">${escapeHtml(buildLibraryStateText(item))}</div>
         <div class="inline-actions">
-          <button class="btn-secondary" data-open-job-id="${escapeHtml(item.jobId)}" data-source-type="${escapeHtml(item.sourceType || librarySource)}" type="button">View details</button>
-          <button class="btn-secondary" data-library-delete-job-id="${escapeHtml(item.jobId)}" data-source-type="${escapeHtml(item.sourceType || librarySource)}" data-library-delete-mode="${escapeHtml(libraryMode)}" type="button">${libraryMode === 'saved' ? 'Remove' : 'Delete'}</button>
+          <button class="btn-secondary" data-open-job-id="${escapeHtml(item.jobId)}" data-source-type="${escapeHtml(sourceType)}" type="button">View details</button>
+          <button class="btn-secondary" data-library-delete-job-id="${escapeHtml(item.jobId)}" data-source-type="${escapeHtml(sourceType)}" data-library-delete-mode="${escapeHtml(libraryMode)}" type="button">${libraryMode === 'saved' ? 'Remove' : 'Delete'}</button>
         </div>
       </div>
     `;
@@ -1001,7 +1008,7 @@ async function handleManualJobAction(dataset) {
 
 async function toggleSavedPositionFromDataset(dataset) {
   const jobId = dataset.saveJobId || dataset.jobId;
-  const sourceType = dataset.sourceType || 'linkedin';
+  const sourceType = normalizeSourceType(dataset.sourceType);
   const payload = buildSavePayload(jobId, sourceType);
   const response = await chrome.runtime.sendMessage({
     type: Actions.TOGGLE_SAVE_POSITION,
@@ -1016,6 +1023,7 @@ async function toggleSavedPositionFromDataset(dataset) {
 }
 
 function buildSavePayload(jobId, sourceType = 'linkedin') {
+  sourceType = normalizeSourceType(sourceType);
   const cached = scoreMap.get(jobId);
   const isInserted = sourceType === 'inserted';
   const manualJob = isInserted ? manualJobs.find(job => job.manualJobId === jobId) : null;
@@ -1035,7 +1043,7 @@ function buildSavePayload(jobId, sourceType = 'linkedin') {
 }
 
 function buildPositionKey(jobId, sourceType = 'linkedin') {
-  return `${sourceType}:${jobId}`;
+  return `${normalizeSourceType(sourceType)}:${jobId}`;
 }
 
 function setupJobListControls() {
@@ -1338,7 +1346,7 @@ function renderNoPageState() {
   hideManualDetailPanel();
   els.jdStatusBadge.textContent = 'Waiting';
   els.jdStatusBadge.className = 'status-badge';
-  els.jdInfo.innerHTML = '<p class="hint-text">Open a LinkedIn job page to load job data.</p>';
+  els.jdInfo.innerHTML = '<p class="hint-text">Open a supported LinkedIn or Indeed job page to load job data.</p>';
   els.cachedResultHint.classList.add('hidden');
   hideListMode();
   updateAnalyzeButtons();
@@ -1347,6 +1355,10 @@ function renderNoPageState() {
 function syncListMode(jobs) {
   const normalizedJobs = Array.isArray(jobs) ? jobs : [];
   const nextSignature = normalizedJobs.map(job => job.jobId).join(',');
+
+  if (normalizedJobs.length) {
+    currentListSourceType = normalizeSourceType(normalizedJobs[0].sourceType);
+  }
 
   if (nextSignature !== currentListSignature) {
     currentListSignature = nextSignature;
@@ -1405,7 +1417,7 @@ function handleJDData(data) {
   } else {
     els.jdStatusBadge.textContent = 'Unavailable';
     els.jdStatusBadge.className = 'status-badge failed';
-    els.jdInfo.innerHTML = '<p class="hint-text">Unable to read the current LinkedIn job details.</p>';
+    els.jdInfo.innerHTML = '<p class="hint-text">Unable to read the current job details.</p>';
   }
 
   updateAnalyzeButtons();
@@ -1452,10 +1464,11 @@ async function hydrateJobScores(jobs, options = {}) {
     if (options.includeCurrentJobResult && currentJDData?.jobId) {
       const cachedCurrent = scoreMap.get(currentJDData.jobId);
       if (cachedCurrent?.result && !isAnalyzing) {
-        handleResult({
-          ...cachedCurrent.result,
-          jobId: cachedCurrent.jobId,
-          jobTitle: cachedCurrent.title,
+          handleResult({
+            ...cachedCurrent.result,
+            jobId: cachedCurrent.jobId,
+            sourceType: normalizeSourceType(cachedCurrent.sourceType),
+            jobTitle: cachedCurrent.title,
           company: cachedCurrent.company,
           location: cachedCurrent.location,
           jobUrl: cachedCurrent.url,
@@ -1488,10 +1501,11 @@ function renderJobList() {
   els.batchReanalyzeBtn.classList.toggle('hidden', shownJobsWithCache().length === 0);
 
   els.jobList.innerHTML = shownJobs.map((job, index) => {
+    const sourceType = normalizeSourceType(job.sourceType || currentListSourceType);
     const cached = scoreMap.get(job.jobId);
     const score = cached?.score;
     const scoreClass = typeof score === 'number' ? getScoreClass(score) : 'pending';
-    const isSaved = savedPositionsMap.has(buildPositionKey(job.jobId, 'linkedin'));
+    const isSaved = savedPositionsMap.has(buildPositionKey(job.jobId, sourceType));
     const stateText = cached
       ? `Cached on ${formatTimestamp(cached.analyzedAt)}`
       : 'Not analyzed for this resume yet';
@@ -1506,15 +1520,15 @@ function renderJobList() {
     });
 
     return `
-      <div class="job-list-item${isSelected ? ' active-view' : ''}${isSaved ? ' saved-item' : ''}" data-job-id="${escapeHtml(job.jobId)}" data-source-type="linkedin" role="button" tabindex="0" aria-label="Open analysis for ${escapeHtml(job.title || 'Unknown title')}">
+      <div class="job-list-item${isSelected ? ' active-view' : ''}${isSaved ? ' saved-item' : ''}" data-job-id="${escapeHtml(job.jobId)}" data-source-type="${escapeHtml(sourceType)}" role="button" tabindex="0" aria-label="Open analysis for ${escapeHtml(job.title || 'Unknown title')}">
         <div class="job-row-top">
           <div>
-            <div class="job-index">#${index + 1}${isCurrent ? ' - current' : ''} <span class="job-source-pill">LinkedIn</span></div>
+            <div class="job-index">#${index + 1}${isCurrent ? ' - current' : ''} <span class="job-source-pill">${escapeHtml(getSourceLabel(sourceType))}</span></div>
             <div class="job-title">${escapeHtml(job.title || 'Unknown title')}${titleBadges}</div>
           </div>
           <div class="job-item-actions">
             ${typeof score === 'number'
-              ? buildSaveStarButton(job.jobId, 'linkedin', isSaved)
+              ? buildSaveStarButton(job.jobId, sourceType, isSaved)
               : ''}
             ${typeof score === 'number'
               ? `<span class="job-score ${scoreClass}">${Math.round(score)}%</span>`
@@ -1635,7 +1649,7 @@ function handleResult(result) {
   if (typeof result?.overallMatchPercent === 'number' && result.jobId) {
     scoreMap.set(result.jobId, {
       jobId: result.jobId,
-      sourceType: result.sourceType || 'linkedin',
+      sourceType: normalizeSourceType(result.sourceType),
       score: result.overallMatchPercent,
       analyzedAt: result.cachedAt || result.metadata?.analysisTimestamp || new Date().toISOString(),
       title: result.jobTitle || result.title || '',
@@ -1890,6 +1904,8 @@ async function openJobFromList(jobId) {
   }
 
   currentResultJobId = jobId;
+  const listJob = currentListJobs.find(job => job.jobId === jobId);
+  const sourceType = normalizeSourceType(listJob?.sourceType || currentListSourceType);
   renderJobList();
 
   const activeTab = await getActiveTab();
@@ -1900,7 +1916,7 @@ async function openJobFromList(jobId) {
         payload: { jobId },
       });
     } catch {
-      // Focusing the LinkedIn card is best effort.
+      // Focusing the job card is best effort.
     }
   }
 
@@ -1931,6 +1947,7 @@ async function openJobFromList(jobId) {
     const listDetailResult = {
       ...entry.result,
       jobId: entry.jobId,
+      sourceType: normalizeSourceType(entry.sourceType || sourceType),
       jobTitle: entry.title,
       company: entry.company,
       location: entry.location,
@@ -1948,7 +1965,7 @@ async function openJobFromList(jobId) {
     return;
   }
 
-  showSaveHint('This job has not been analyzed yet. It was focused on the LinkedIn page.', 'success');
+  showSaveHint(`This job has not been analyzed yet. It was focused on the ${getSourceLabel(sourceType)} page.`, 'success');
   scheduleRefreshPageContext();
 }
 
@@ -1987,7 +2004,7 @@ async function openCachedResult(jobId, sourceType = 'linkedin', displayMode = 'r
     const hydratedResult = {
       ...entry.result,
       jobId: entry.jobId,
-      sourceType: sourceType || entry.sourceType || 'linkedin',
+      sourceType: normalizeSourceType(sourceType || entry.sourceType),
       jobTitle: entry.title,
       company: entry.company,
       location: entry.location,
@@ -2019,7 +2036,7 @@ async function openCachedResult(jobId, sourceType = 'linkedin', displayMode = 'r
     return;
   }
 
-  if (sourceType === 'inserted') {
+  if (normalizeSourceType(sourceType) === 'inserted') {
     const manualJob = manualJobs.find(job => job.manualJobId === jobId);
     if (manualJob) {
       currentManualEditingId = manualJob.manualJobId;
@@ -2040,7 +2057,7 @@ async function openCachedResult(jobId, sourceType = 'linkedin', displayMode = 'r
 }
 
 async function openLibraryItem(dataset) {
-  const sourceType = dataset.sourceType || librarySource;
+  const sourceType = normalizeSourceType(dataset.sourceType || librarySource);
   const jobId = dataset.jobId;
   if (!jobId) {
     return;
@@ -2074,7 +2091,7 @@ function updateSavePositionButton() {
     return;
   }
 
-  const sourceType = currentResultPayload.sourceType || 'linkedin';
+  const sourceType = normalizeSourceType(currentResultPayload.sourceType);
   const isSaved = savedPositionsMap.has(buildPositionKey(currentResultPayload.jobId, sourceType));
   els.savePositionBtn.classList.remove('hidden');
   els.savePositionBtn.classList.toggle('active', isSaved);
@@ -2697,7 +2714,8 @@ function formatKeywordMarker(keyword, style) {
 
 function buildSaveStarButton(jobId, sourceType, isSaved) {
   const label = isSaved ? 'Remove from saved positions' : 'Save position';
-  return `<button class="star-btn${isSaved ? ' active' : ''}" data-save-job-id="${escapeHtml(jobId)}" data-source-type="${escapeHtml(sourceType || 'linkedin')}" type="button" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}">${isSaved ? '★' : '☆'}</button>`;
+  const normalizedSourceType = normalizeSourceType(sourceType);
+  return `<button class="star-btn${isSaved ? ' active' : ''}" data-save-job-id="${escapeHtml(jobId)}" data-source-type="${escapeHtml(normalizedSourceType)}" type="button" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}">${isSaved ? '★' : '☆'}</button>`;
 }
 
 function buildResultTitleSuffix(result) {

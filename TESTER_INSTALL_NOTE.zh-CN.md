@@ -1,6 +1,6 @@
-# 测试者安装说明 —— v0.4.0
+# 测试者安装说明 —— v0.5.0
 
-`v0.4.0` 现已合并进 `main`；本版本新增 LinkedIn AI-powered / semantic Jobs 搜索支持，同时保留 Classic Search 支持。
+`v0.5.0` 新增了经过测试的荷兰 Indeed 岗位列表支持，同时保留 LinkedIn Classic 和 AI-powered Search。
 
 如果简历上传失败，最常见的原因是加载了错误的扩展目录。
 
@@ -21,23 +21,24 @@
 
 1. 在 `chrome://extensions/` 打开现有扩展的“详细信息”，复制 `位置（Location）`。
 2. 修改前先备份原来的扩展文件夹。
-3. 将 `linkedin-job-match-v0.4.0.zip` 解压到临时目录。
+3. 将 `linkedin-job-match-v0.5.0.zip` 解压到临时目录，或者构建后直接使用仓库中的 `dist/` 目录。
 4. 将解压包里面的内容复制到原来的 `Location` 中并替换旧文件。保持原目录路径不变，不要再嵌套一个 `dist/` 文件夹。
 5. 在原扩展卡片上点击“重新加载（Reload）”。
-6. 刷新 LinkedIn 标签页，再重新打开侧边栏。
+6. 刷新 LinkedIn 或 Indeed 标签页，再重新打开侧边栏。
 
-用“加载已解压的扩展程序”加载新目录会生成不同的扩展 ID 和独立的本地存储。只要保留原目录和原 ID，本版本会保留原有配置、简历、收藏/手动岗位以及 v0.1.2 以来的缓存快照；之前没有分析的岗位不会被错误变成已分析。
+用“加载已解压的扩展程序”加载新目录会生成不同的扩展 ID 和独立的本地存储。把文件更新到原目录并保留原 ID，才能继续使用原有配置、简历、收藏/手动岗位以及 v0.1.2 以来的缓存快照；之前没有分析的岗位不会被错误变成已分析。
 
 原因是 Chrome 会按照扩展 ID 隔离 `chrome.storage.local`。ZIP 本身不能直接更新未打包扩展；把文件替换到原来的 `Location`，才能继续使用原扩展条目和本地数据。
 
-## v0.4.0 测试重点
+## v0.5.0 测试重点
 
-1. 打开 LinkedIn AI-powered Jobs 搜索页面，URL 通常包含 `origin=SEMANTIC_SEARCH_LANDING_PAGE`。
-2. 扩展重新加载后刷新页面，确认侧边栏显示 `Jobs on this page` 和检测到的岗位卡片。
-3. 确认已有分析的岗位显示缓存匹配分数和标题胶囊。
-4. 从侧边栏点击多个岗位，确认选中岗位详情和 JD 会随岗位切换。
-5. 点击重新分析当前显示的岗位，刷新 LinkedIn 后再次确认列表可以读取。
-6. 打开侧边栏 `Settings`，确认 v0.3.1 的标题信号、关键词、颜色和 provider 设置仍然可用。
-7. 把 LinkedIn 切回 Classic Search 并刷新一次，验证 Classic fallback。
+1. 打开 `https://nl.indeed.com/` 或 Indeed 岗位搜索/列表页面。
+2. 扩展重新加载后刷新页面，确认侧边栏显示 `Jobs on this page`、`Indeed` 来源胶囊和检测到的岗位卡片。
+3. 从侧边栏点击多个 Indeed 岗位，确认选中详情和 JD 会随岗位切换。
+4. 确认当前页卡片能显示 Indeed 岗位标题、公司、地点和 JD。
+5. 上传简历，分析一个 Indeed 岗位，确认页面和侧边栏出现分数/标题胶囊。
+6. 重新分析当前显示的 Indeed 岗位，刷新页面后再次确认列表和缓存结果可以读取。
+7. 打开 `Library`，确认 Indeed 历史/收藏与 LinkedIn、Inserted 分开。
+8. 分别打开 LinkedIn AI-powered Search 和 Classic Search 并刷新一次，确认原有两个适配器仍然正常。
 
-![v0.4.0 AI-powered LinkedIn 搜索中的缓存列表分析和标题胶囊](./docs/assets/v0.4.0-ai-powered-search.png)
+v0.5.0 的 Indeed 适配已经在荷兰 Indeed 首页推荐岗位列表上完成 smoke test。Indeed 的 DOM 可能随实验版本和页面状态变化；如果某个搜索页面表现不同，请同时记录页面 URL 和当时的界面布局。

@@ -21,7 +21,7 @@
         </div>
         <div>
           <h1 class="header-title">LinkedIn Job Match</h1>
-          <p class="header-subtitle">LinkedIn resume matching</p>
+          <p class="header-subtitle">LinkedIn + Indeed resume matching</p>
         </div>
       </div>
       <nav class="header-nav">
@@ -40,7 +40,7 @@
           <span class="status-badge" id="jd-status-badge">Waiting</span>
         </div>
         <div id="jd-info" class="jd-info">
-          <p class="hint-text">Open a LinkedIn job page to load the current role.</p>
+          <p class="hint-text">Open a supported LinkedIn or Indeed job page to load the current role.</p>
         </div>
         <p class="cache-hint hidden" id="cached-result-hint"></p>
         <div class="inline-actions">
@@ -95,6 +95,7 @@
             </div>
             <div class="segmented-control">
               <button class="segmented-btn active" id="library-source-linkedin" data-library-source="linkedin" type="button">LinkedIn</button>
+              <button class="segmented-btn" id="library-source-indeed" data-library-source="indeed" type="button">Indeed</button>
               <button class="segmented-btn" id="library-source-inserted" data-library-source="inserted" type="button">Inserted</button>
             </div>
           </div>
@@ -461,11 +462,11 @@
         <section class="title-display-settings">
           <div class="card-header settings-subheader">
             <div>
-              <p class="eyebrow">LinkedIn title</p>
+              <p class="eyebrow">Job title</p>
               <h2>Title signals</h2>
             </div>
           </div>
-          <p class="field-hint">Choose which compact signals appear beside analyzed LinkedIn job titles. Save to apply the changes on the current page.</p>
+          <p class="field-hint">Choose which compact signals appear beside analyzed LinkedIn and Indeed job titles. Save to apply the changes on the current page.</p>
 
           <div class="form-group">
             <label for="setting-title-color-scheme">Capsule color set</label>

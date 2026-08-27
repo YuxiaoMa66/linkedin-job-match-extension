@@ -33,6 +33,28 @@ export const Actions = Object.freeze({
   JD_DATA: 'JD_DATA',
 });
 
+export const SOURCE_TYPES = Object.freeze({
+  LINKEDIN: 'linkedin',
+  INDEED: 'indeed',
+  INSERTED: 'inserted',
+});
+
+export const SOURCE_LABELS = Object.freeze({
+  [SOURCE_TYPES.LINKEDIN]: 'LinkedIn',
+  [SOURCE_TYPES.INDEED]: 'Indeed',
+  [SOURCE_TYPES.INSERTED]: 'Inserted',
+});
+
+export function normalizeSourceType(value) {
+  return Object.values(SOURCE_TYPES).includes(value)
+    ? value
+    : SOURCE_TYPES.LINKEDIN;
+}
+
+export function getSourceLabel(value) {
+  return SOURCE_LABELS[normalizeSourceType(value)];
+}
+
 export const ConfidenceImpact = Object.freeze({
   RAISE: 'raise',
   LOWER: 'lower',

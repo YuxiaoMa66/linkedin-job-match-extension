@@ -1,3 +1,5 @@
+import { normalizeSourceType } from '../shared/constants.js';
+
 const MANUAL_JOBS_KEY = 'ljm_manual_jobs_v1';
 const SAVED_POSITIONS_KEY = 'ljm_saved_positions_v1';
 const INSERTED_SOURCE = 'inserted';
@@ -21,7 +23,7 @@ function normalizeManualJob(rawJob = {}) {
 }
 
 function normalizeSavedPosition(rawPosition = {}) {
-  const sourceType = rawPosition.sourceType === INSERTED_SOURCE ? INSERTED_SOURCE : LINKEDIN_SOURCE;
+  const sourceType = normalizeSourceType(rawPosition.sourceType);
   return {
     positionKey: rawPosition.positionKey || buildPositionKey(rawPosition.jobId, sourceType),
     jobId: rawPosition.jobId || '',
@@ -149,7 +151,7 @@ export const PositionManager = {
 
   async toggleSavedPosition(payload) {
     const positions = await readSavedPositions();
-    const sourceType = payload?.sourceType === INSERTED_SOURCE ? INSERTED_SOURCE : LINKEDIN_SOURCE;
+    const sourceType = normalizeSourceType(payload?.sourceType);
     const positionKey = buildPositionKey(payload?.jobId, sourceType);
     const existingIndex = positions.findIndex(position => position.positionKey === positionKey);
 
@@ -179,7 +181,7 @@ export const PositionManager = {
     }
 
     const positions = await readSavedPositions();
-    const positionKey = buildPositionKey(jobId, sourceType);
+    const positionKey = buildPositionKey(jobId, normalizeSourceType(sourceType));
     const nextPositions = positions.filter(position => position.positionKey !== positionKey);
     if (nextPositions.length === positions.length) {
       return false;
@@ -195,7 +197,7 @@ export const PositionManager = {
     }
 
     const positions = await readSavedPositions();
-    const positionKey = buildPositionKey(jobId, sourceType);
+    const positionKey = buildPositionKey(jobId, normalizeSourceType(sourceType));
     const existingIndex = positions.findIndex(position => position.positionKey === positionKey);
     if (existingIndex < 0) {
       return;

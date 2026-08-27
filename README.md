@@ -7,18 +7,18 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/main"><img alt="v0.4.0" src="https://img.shields.io/badge/version-v0.4.0-9a4a30?style=flat-square" /></a>
+  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/main"><img alt="v0.5.0" src="https://img.shields.io/badge/version-v0.5.0-9a4a30?style=flat-square" /></a>
   <img alt="Chrome Manifest V3" src="https://img.shields.io/badge/Chrome-MV3-9a4a30?style=flat-square" />
   <img alt="Vite 5" src="https://img.shields.io/badge/Vite-5-9a4a30?style=flat-square" />
   <a href="./LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-9a4a30?style=flat-square" /></a>
 </p>
 
 <p align="center">
-  A local-first Chrome extension for resume matching, reusable job analysis, inline LinkedIn signals, and Netherlands sponsorship context.
+  A local-first Chrome extension for resume matching, reusable job analysis, inline LinkedIn and Indeed signals, and Netherlands sponsorship context.
 </p>
 
 <p align="center">
-  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/main"><strong>Use v0.4.0 on main</strong></a>
+  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/main"><strong>Use v0.5.0 on main</strong></a>
   &nbsp;&nbsp;|&nbsp;&nbsp;
   <a href="#installation">Installation</a>
   &nbsp;&nbsp;|&nbsp;&nbsp;
@@ -26,7 +26,12 @@
 </p>
 
 > [!NOTE]
-> `v0.4.0` is now merged into `main`. The feature branch remains available as the AI-search implementation history; the current main version supersedes the earlier releases.
+> `v0.5.0` has been merged into `main` and published as a GitHub Release. It adds the tested Indeed adapter while retaining the LinkedIn Classic and AI-powered workflows.
+
+> [!IMPORTANT]
+> **Current v0.5.0 compatibility**
+>
+> v0.5.0 supports the Netherlands Indeed site (`nl.indeed.com`) in addition to LinkedIn Classic and AI-powered Search. It reads visible Indeed job cards, the selected job detail, and `#jobDescriptionText`, then reuses the existing analysis, cache, title-signal, history, and saved-position workflow. Refresh the Indeed or LinkedIn page after installing or reloading the extension.
 
 > [!IMPORTANT]
 > **Current LinkedIn compatibility**
@@ -41,18 +46,22 @@
 
 1. **First install:** download a built ZIP, extract it, and load the extracted folder from `chrome://extensions/` → `Developer mode` → `Load unpacked`.
 2. **Update an existing v0.1.2+ installation:** extract the new ZIP, replace the files inside the original extension `Location`, keep the folder path unchanged, and click `Reload` on the original card.
-3. **Use either LinkedIn search layout:** v0.4.0 reads Classic Jobs search and AI-powered search. After switching layouts or updating the extension, refresh the page.
+3. **Use a supported job page:** v0.5.0 reads LinkedIn Classic, LinkedIn AI-powered search, and the Netherlands Indeed list. After switching sites/layouts or updating the extension, refresh the page.
 4. Upload your resume in the side panel, open a job or a visible job list, and run the analysis.
 
 The same-folder update keeps the extension ID and therefore preserves local settings, resume data, saved/manual positions, and compatible history. Loading a newly extracted folder creates a separate unpacked extension ID and separate `chrome.storage.local`; the detailed reason and recovery steps are in [Installation](#installation).
 
 ## See the decision surface
 
-Match scores and job signals stay inside LinkedIn while the side panel keeps the resume, evidence, history, saved positions, and re-analysis controls together.
+Match scores and job signals stay on the job page while the side panel keeps the resume, evidence, history, saved positions, and re-analysis controls together.
 
 ![LinkedIn AI-powered search with v0.4.0 list analysis, cached scores, and title capsules](./docs/assets/v0.4.0-ai-powered-search.png)
 
-The v0.4.0 adapter reads the AI-powered list and selected detail while preserving the same score, cache, history, and title-signal layer used by Classic Search.
+The v0.4.0 adapter reads LinkedIn's AI-powered list and selected detail, while the v0.5.0 adapter adds the Indeed list and detail pane. Both reuse the same score, cache, history, and title-signal layer.
+
+![Indeed job list with v0.5.0 cached analysis, match score, and title capsules](./docs/assets/v0.5.0-indeed.png)
+
+This verified v0.5.0 view shows an Indeed list and selected job detail working with the existing resume, cached result, match score, `JD` language, and required-language capsules.
 
 ![LinkedIn classic search and job detail with current title signals](./docs/assets/v0.3.1-linkedin-title-capsules.png)
 
@@ -63,10 +72,20 @@ Prefer a visual walkthrough? Open the [product homepage](./docs/index.html).
 | Capability | What it changes |
 | --- | --- |
 | Resume-to-role matching | Scores single jobs, visible Classic or AI-powered LinkedIn search results, and jobs pasted from other sources. |
-| Inline LinkedIn signals | Adds match scores and configurable title capsules for JD language, required language, experience, sponsorship, and JD keywords. |
-| Reusable decision history | Caches compatible analyses, keeps separate LinkedIn and inserted-job history, and saves positions for later review. |
+| Inline job-page signals | Adds match scores and configurable title capsules for JD language, required language, experience, sponsorship, and JD keywords on LinkedIn and Indeed. |
+| Reusable decision history | Caches compatible analyses, keeps separate LinkedIn, Indeed, and inserted-job history, and saves positions for later review. |
 | Provider choice | Supports OpenAI, Anthropic, Gemini, OpenRouter, Poe, and custom OpenAI-compatible endpoints. |
 | Netherlands sponsorship context | Checks organisation names against a bundled IND-derived dataset containing 12,927 unique names. |
+
+## What's New In v0.5.0
+
+- Added a tested Netherlands Indeed adapter for `https://nl.indeed.com/`, including visible card discovery, Indeed `jk`/`vjk` job IDs, selected-detail focus, company/location extraction, and `#jobDescriptionText` JD extraction
+- Reused the existing analysis, scoring, title-signal, cache, history, and saved-position workflow instead of creating a second data model
+- Added `Indeed` as a separate Library source so existing LinkedIn and Inserted records remain distinguishable
+- Preserved legacy records: old entries without a source marker continue to display as LinkedIn, while never-analysed jobs remain unanalysed
+- Added a verified Indeed UI screenshot and a dedicated tester/update guide
+
+For the concise release record, see the [v0.5.0 release notes](./RELEASE_NOTES_v0.5.0.md). For same-folder updates that preserve v0.1.2+ data, see the [tester/update guide](./TESTER_INSTALL_NOTE.md).
 
 ## What's New In v0.4.0
 
@@ -164,7 +183,7 @@ It is replaced only when the user uploads a new one or explicitly removes the cu
 
 ### 2. Single-job analysis
 
-On a LinkedIn job detail page, the extension reads:
+On a LinkedIn or Indeed job detail page, the extension reads:
 
 - job title
 - company
@@ -173,13 +192,15 @@ On a LinkedIn job detail page, the extension reads:
 
 It then shows the result in the side panel and reuses cache when the same job has already been analyzed for the same resume and scoring context.
 
-### 3. List mode analysis on Classic and AI-powered Jobs search
+### 3. List mode analysis on LinkedIn and Indeed
 
-On LinkedIn's Classic or AI-powered Jobs search results page, the extension can:
+On LinkedIn's Classic or AI-powered Jobs search results page, and on the Netherlands Indeed jobs list, the extension can:
 
 - detect visible job cards on the page
 - read AI-powered cards from their stable LinkedIn component keys and retain the job ID used by the existing cache
+- read Indeed cards from their stable `data-jk` job IDs and the selected Indeed detail pane
 - focus an AI-powered card and wait for the selected detail pane before reading the JD
+- focus an Indeed card and wait for its detail pane and JD to finish rendering
 - analyze the first `N` jobs automatically
 - load and show more jobs from the same page
 - reuse cached results instead of re-calling the model
@@ -191,7 +212,7 @@ On LinkedIn's Classic or AI-powered Jobs search results page, the extension can:
 The new `Library` section lets users:
 
 - switch between `History` and `Saved`
-- switch between `LinkedIn` and `Inserted`
+- switch between `LinkedIn`, `Indeed`, and `Inserted`
 - reopen prior analyses in an in-card detail view
 - remove single history entries
 - remove single saved positions
@@ -314,7 +335,7 @@ data/                    IND-derived sponsor data and update script
 public/                  build-time copied public files
 Screenshot/              README screenshots
 src/background/          service worker, cache, config, model integration
-src/content/             LinkedIn extraction and badge injection
+src/content/             LinkedIn/Indeed extraction and badge injection
 src/prompts/             prompt templates
 src/shared/              shared constants and validation helpers
 src/sidepanel/           side panel UI
@@ -364,7 +385,7 @@ Common mistake to avoid:
 - GitHub source archives are not the same as the built extension package.
 - If someone downloads the repository source and loads the root folder instead of `dist/`, resume parsing for `PDF` or `DOCX` files may fail.
 
-To build the current version from source, use the `main` branch with Option A. The matching built package is attached to the [v0.4.0 GitHub Release](https://github.com/YuxiaoMa66/linkedin-job-match-extension/releases/tag/v0.4.0).
+To build the current v0.5.0 version from source, use the `main` branch with Option A. The matching built package is attached to the [v0.5.0 GitHub Release](https://github.com/YuxiaoMa66/linkedin-job-match-extension/releases/tag/v0.5.0).
 
 ### Update the existing extension without creating a second one
 
@@ -372,10 +393,10 @@ To keep the resume, settings, saved positions, manual jobs, and v0.1.2+ match hi
 
 1. Open `chrome://extensions/`, open the existing extension's `Details`, and copy its `Location` path.
 2. Back up that original folder before changing anything.
-3. Extract `linkedin-job-match-v0.4.0.zip` into a temporary folder.
+3. Extract `linkedin-job-match-v0.5.0.zip` into a temporary folder.
 4. Copy the contents inside the extracted package into the existing `Location`, replacing the old files. Keep the original parent folder and path unchanged; do not create a nested `dist/` folder.
 5. Return to `chrome://extensions/` and click `Reload` on the existing extension card.
-6. Refresh the LinkedIn tab and reopen the side panel so the new content script is attached.
+6. Refresh the LinkedIn or Indeed tab and reopen the side panel so the new content script is attached.
 
 Do not click `Load unpacked` on the newly extracted folder, and do not drag it in as a separate unpacked extension. Chrome will assign that folder a separate extension ID and separate `chrome.storage.local`, which makes it look like a new plugin. If a duplicate was already loaded, remove only the duplicate card and update the original folder in place.
 

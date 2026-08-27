@@ -1,3 +1,5 @@
+import { normalizeSourceType } from '../shared/constants.js';
+
 const CACHE_PREFIX = 'match_result_v3_';
 const CURRENT_CACHE_VERSION = 3;
 const LEGACY_CACHE_PREFIX = 'match_result_';
@@ -11,7 +13,7 @@ function buildSummary(jobId, jdData, matchData, cacheContext) {
   const sponsorship = matchData?.sponsorshipAssessment || {};
   const metadata = matchData?.metadata || {};
   const scoringProfile = cacheContext?.scoringProfile || {};
-  const sourceType = jdData?.sourceType === 'inserted' ? 'inserted' : 'linkedin';
+  const sourceType = normalizeSourceType(jdData?.sourceType);
 
   return {
     jobId,
@@ -253,7 +255,7 @@ export const CacheManager = {
     const sourceTypeFilter = options.sourceType || null;
 
     for (const record of records) {
-      const entrySourceType = record.value?.summary?.sourceType || 'linkedin';
+      const entrySourceType = normalizeSourceType(record.value?.summary?.sourceType);
       if (sourceTypeFilter && entrySourceType !== sourceTypeFilter) {
         continue;
       }

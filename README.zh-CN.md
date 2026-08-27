@@ -7,18 +7,18 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/main"><img alt="v0.4.0" src="https://img.shields.io/badge/version-v0.4.0-9a4a30?style=flat-square" /></a>
+  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/main"><img alt="v0.5.0" src="https://img.shields.io/badge/version-v0.5.0-9a4a30?style=flat-square" /></a>
   <img alt="Chrome Manifest V3" src="https://img.shields.io/badge/Chrome-MV3-9a4a30?style=flat-square" />
   <img alt="Vite 5" src="https://img.shields.io/badge/Vite-5-9a4a30?style=flat-square" />
   <a href="./LICENSE"><img alt="MIT 许可证" src="https://img.shields.io/badge/license-MIT-9a4a30?style=flat-square" /></a>
 </p>
 
 <p align="center">
-  一个本地优先的 Chrome 扩展，把简历匹配、岗位分析历史、LinkedIn 页面信号和荷兰 sponsorship 信息放在同一套工作流里。
+  一个本地优先的 Chrome 扩展，把简历匹配、岗位分析历史、LinkedIn 与 Indeed 页面信号和荷兰 sponsorship 信息放在同一套工作流里。
 </p>
 
 <p align="center">
-  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/main"><strong>使用 main 中的 v0.4.0</strong></a>
+  <a href="https://github.com/YuxiaoMa66/linkedin-job-match-extension/tree/main"><strong>使用 main 中的 v0.5.0</strong></a>
   &nbsp;&nbsp;|&nbsp;&nbsp;
   <a href="#安装方式">安装</a>
   &nbsp;&nbsp;|&nbsp;&nbsp;
@@ -26,7 +26,12 @@
 </p>
 
 > [!NOTE]
-> `v0.4.0` 现已合并进 `main`。原来的功能支线仍保留作为 AI 搜索适配历史；当前 main 版本已经取代早期版本。
+> `v0.5.0` 已经合并到 `main` 并发布为 GitHub Release。本版本新增了经过测试的 Indeed 适配，同时保留 LinkedIn Classic 和 AI-powered 工作流。
+
+> [!IMPORTANT]
+> **当前 v0.5.0 兼容范围**
+>
+> v0.5.0 除了支持 LinkedIn Classic 和 AI-powered Search，还支持荷兰 Indeed（`nl.indeed.com`）。它可以读取可见 Indeed 岗位卡片、选中岗位详情和 `#jobDescriptionText`，并复用现有分析、缓存、标题信号、历史和收藏岗位流程。安装或重新加载扩展后，请刷新 Indeed 或 LinkedIn 页面。
 
 > [!IMPORTANT]
 > **当前版本的 LinkedIn 兼容性**
@@ -41,18 +46,22 @@
 
 1. **第一次安装：** 下载构建好的 ZIP，解压后打开 `chrome://extensions/`，开启“开发者模式”，点击“加载已解压的扩展程序”，选择解压后的目录。
 2. **更新已有的 v0.1.2+ 版本：** 解压新 ZIP，把文件替换到原扩展的 `Location` 中，保持目录路径不变，然后在原卡片上点击“Reload”。
-3. **使用任意 LinkedIn 搜索界面：** v0.4.0 同时读取 Classic Jobs Search 和 AI-powered Search。切换界面或更新扩展后，请刷新页面。
+3. **使用支持的岗位页面：** v0.5.0 读取 LinkedIn Classic、LinkedIn AI-powered Search 和荷兰 Indeed 岗位列表。切换网站/界面或更新扩展后，请刷新页面。
 4. 在侧边栏上传简历，打开岗位或岗位列表并开始分析。
 
 在同一目录更新可以保留扩展 ID，因此设置、简历、收藏/手动岗位和兼容历史都能继续使用。把新目录作为未打包扩展加载会生成独立的扩展 ID 和独立的 `chrome.storage.local`；详细原因和处理步骤见[安装方式](#安装方式)。
 
 ## 看清岗位，再决定是否投入时间
 
-匹配分数和岗位信号直接显示在 LinkedIn 页面里，侧边栏则集中保存简历、证据、历史、收藏和重新分析入口。
+匹配分数和岗位信号直接显示在岗位页面里，侧边栏则集中保存简历、证据、历史、收藏和重新分析入口。
 
 ![LinkedIn AI-powered 搜索页面中的 v0.4.0 列表分析、缓存分数和标题胶囊](./docs/assets/v0.4.0-ai-powered-search.png)
 
-v0.4.0 的适配器会读取 AI 搜索列表和当前岗位详情，同时继续复用 Classic Search 使用的匹配分数、缓存、历史和标题信号。
+v0.4.0 的适配器会读取 LinkedIn AI 搜索列表和当前岗位详情；v0.5.0 又增加了 Indeed 列表和详情面板。两者复用同一套匹配分数、缓存、历史和标题信号。
+
+![Indeed 岗位列表中的 v0.5.0 缓存分析、匹配分数和标题胶囊](./docs/assets/v0.5.0-indeed.png)
+
+这张经过验证的 v0.5.0 画面展示了 Indeed 列表、选中岗位详情，以及原有简历、缓存结果、匹配分数、`JD` 语言和要求语言胶囊的协同工作。
 
 ![当前版本 LinkedIn 经典版搜索和岗位详情中的标题信号](./docs/assets/v0.3.1-linkedin-title-capsules.png)
 
@@ -63,10 +72,20 @@ v0.4.0 的适配器会读取 AI 搜索列表和当前岗位详情，同时继续
 | 能力 | 带来的变化 |
 | --- | --- |
 | 简历与岗位匹配 | 支持单岗位、LinkedIn Classic 或 AI-powered 搜索结果列表，以及手动粘贴的其他来源岗位。 |
-| LinkedIn 页面内信号 | 在岗位标题附近显示匹配分数，以及可配置的 JD 语言、要求语言、经验年限、sponsorship 和 JD 关键词胶囊框。 |
-| 可复用的判断历史 | 复用兼容缓存，区分 LinkedIn 与手动插入岗位历史，并收藏值得继续跟进的岗位。 |
+| 岗位页面内信号 | 在 LinkedIn 和 Indeed 的岗位标题附近显示匹配分数，以及可配置的 JD 语言、要求语言、经验年限、sponsorship 和 JD 关键词胶囊框。 |
+| 可复用的判断历史 | 复用兼容缓存，区分 LinkedIn、Indeed 与手动插入岗位历史，并收藏值得继续跟进的岗位。 |
 | 多模型服务商 | 支持 OpenAI、Anthropic、Gemini、OpenRouter、Poe 和自定义 OpenAI 兼容接口。 |
 | 荷兰 sponsorship 信息 | 使用内置 IND 衍生数据集检查组织名称，当前包含 12,927 个唯一名称。 |
+
+## v0.5.0 更新重点
+
+- 新增经过测试的荷兰 Indeed `https://nl.indeed.com/` 适配，包括可见岗位卡片识别、Indeed `jk`/`vjk` 岗位 ID、选中详情切换、公司/地点提取和 `#jobDescriptionText` JD 读取
+- 复用现有分析、评分、标题信号、缓存、历史和收藏岗位流程，不另建一套数据模型
+- 在 `Library` 中增加独立的 `Indeed` 来源筛选，原有 LinkedIn 和 Inserted 数据仍然分开显示
+- 保留旧数据：没有来源标记的历史记录继续按 LinkedIn 显示；从未分析的岗位仍保持未分析
+- 增加经过验证的 Indeed UI 截图，以及独立的测试/更新教程
+
+简洁的版本记录请看 [v0.5.0 更新说明](./RELEASE_NOTES_v0.5.0.zh-CN.md)。要在保留 v0.1.2 以来数据的前提下更新，请看[测试/更新教程](./TESTER_INSTALL_NOTE.zh-CN.md)。
 
 ## v0.4.0 更新重点
 
@@ -167,7 +186,7 @@ provider 切换不会动态获取模型。本版本在选择 provider 时，会�
 
 ### 2. 单岗位分析
 
-在 LinkedIn 单岗位详情页中，扩展会尝试读取：
+在 LinkedIn 或 Indeed 单岗位详情页中，扩展会尝试读取：
 
 - 职位标题
 - 公司
@@ -176,13 +195,15 @@ provider 切换不会动态获取模型。本版本在选择 provider 时，会�
 
 然后在侧边栏中展示结果。如果同一个岗位已经针对当前简历和当前评分配置分析过，则优先复用缓存。
 
-### 3. Classic 与 AI-powered Jobs 搜索列表分析
+### 3. LinkedIn 与 Indeed 岗位列表分析
 
-在 LinkedIn Classic 或 AI-powered Jobs 搜索结果页中，扩展可以：
+在 LinkedIn Classic、AI-powered Jobs 搜索结果页，以及荷兰 Indeed 岗位列表页中，扩展可以：
 
 - 识别当前页面可见岗位
 - 从 AI-powered 卡片的 LinkedIn component key 读取稳定岗位 ID，并继续使用现有缓存
+- 从 Indeed 卡片的 `data-jk` 读取稳定岗位 ID，并读取选中的 Indeed 详情面板
 - 聚焦 AI-powered 岗位卡片，等待详情面板切换后读取 JD
+- 聚焦 Indeed 岗位卡片，等待详情面板和 JD 完成渲染
 - 自动分析前 `N` 个岗位
 - 加载当前页更多岗位
 - 对已有历史结果的岗位直接复用缓存
@@ -194,7 +215,7 @@ provider 切换不会动态获取模型。本版本在选择 provider 时，会�
 新的 `Library` 区块可以让用户：
 
 - 在 `History` 和 `Saved` 之间切换
-- 在 `LinkedIn` 和 `Inserted` 之间切换
+- 在 `LinkedIn`、`Indeed` 和 `Inserted` 之间切换
 - 打开历史分析详情
 - 删除单条历史记录
 - 删除单条收藏记录
@@ -315,7 +336,7 @@ data/                    IND sponsor 数据与更新脚本
 public/                  构建时复制的公开资源
 Screenshot/              README 截图
 src/background/          service worker、缓存、配置、模型集成
-src/content/             LinkedIn 页面提取与角标注入
+src/content/             LinkedIn/Indeed 页面提取与角标注入
 src/prompts/             prompt 模板
 src/shared/              常量与校验辅助
 src/sidepanel/           侧边栏 UI
@@ -365,7 +386,7 @@ npm run build
 - 用户下载了 GitHub 仓库源码压缩包，然后直接加载源码根目录。
 - 这样虽然扩展界面可能可以打开，但如果没有加载 `dist/`，`PDF` 或 `DOCX` 简历解析就可能失败。
 
-如果要从源码构建当前版本，请使用 `main` 支线并按方式一操作。对应的构建包已经附在 [v0.4.0 GitHub Release](https://github.com/YuxiaoMa66/linkedin-job-match-extension/releases/tag/v0.4.0) 中。
+如果要从源码构建当前 v0.5.0，请使用 `main` 支线并按方式一操作。对应的构建包已经附在 [v0.5.0 GitHub Release](https://github.com/YuxiaoMa66/linkedin-job-match-extension/releases/tag/v0.5.0) 中。
 
 ### 更新现有扩展，避免生成第二个插件
 
@@ -373,10 +394,10 @@ npm run build
 
 1. 打开 `chrome://extensions/`，进入现有扩展的“详细信息”，复制 `位置（Location）` 路径。
 2. 修改前先备份原来的扩展文件夹。
-3. 将 `linkedin-job-match-v0.4.0.zip` 解压到临时目录。
+3. 将 `linkedin-job-match-v0.5.0.zip` 解压到临时目录。
 4. 将解压包里面的内容复制到原来的 `Location` 中并替换旧文件。保留原来的父目录和路径不变，不要在里面再嵌套一个 `dist/` 文件夹。
 5. 回到 `chrome://extensions/`，点击原扩展卡片上的“重新加载（Reload）”。
-6. 刷新 LinkedIn 标签页，再重新打开侧边栏，让新版读取脚本重新连接页面。
+6. 刷新 LinkedIn 或 Indeed 标签页，再重新打开侧边栏，让新版读取脚本重新连接页面。
 
 不要对新解压的目录再次点击“加载已解压的扩展程序”，也不要把它作为一个新的未打包扩展拖进去。Chrome 会为新目录分配不同的扩展 ID 和独立的 `chrome.storage.local`，看起来就会像安装了第二个插件。如果已经出现重复卡片，只删除重复的那一个，然后回到原目录更新。
 
