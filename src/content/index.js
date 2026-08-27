@@ -1,3 +1,18 @@
+import {
+  detectLinkedInPageMode,
+  extractAiJDText,
+  extractAiJobData,
+  getAiCardCompany,
+  getAiCardLocation,
+  getAiCardTitle,
+  getAiCardTitleTarget,
+  getAiDetailBadgeTarget,
+  getAiDetailTitleTarget,
+  getAiJobIdFromCard,
+  getAiJobIdFromDetail,
+  getAiListCards,
+} from './linkedin-ai-adapter.js';
+
 const Actions = Object.freeze({
   JD_EXTRACTED: 'JD_EXTRACTED',
   JD_EXTRACT_FAILED: 'JD_EXTRACT_FAILED',
@@ -56,7 +71,7 @@ const DEFAULT_TITLE_DISPLAY_SETTINGS = Object.freeze({
   keywordStyle: 'tag',
 });
 
-const CONTENT_SCRIPT_READY_KEY = '__ljmContentScriptReadyV030__';
+const CONTENT_SCRIPT_READY_KEY = '__ljmContentScriptReadyV040__';
 
 const LIST_ITEM_SELECTORS = [
   '.job-card-container',
@@ -313,7 +328,23 @@ function extractFirst(selectors, context = document) {
   return '';
 }
 
+function getPageMode() {
+  return detectLinkedInPageMode(document, window.location.href);
+}
+
+function getListCards(mode = getPageMode()) {
+  if (mode === 'ai') {
+    return getAiListCards(document);
+  }
+
+  return [...document.querySelectorAll(LIST_ITEM_SELECTOR)];
+}
+
 function extractJDText() {
+  if (getPageMode() === 'ai') {
+    return extractAiJDText(document);
+  }
+
   for (const selector of JD_SELECTORS) {
     const element = document.querySelector(selector);
     const text = element?.innerText?.trim();
@@ -343,6 +374,22 @@ function getCurrentJobId() {
     return pathMatch[1];
   }
 
+  if (getPageMode() === 'ai') {
+    const detailJobId = getAiJobIdFromDetail(document);
+    if (detailJobId) {
+      return detailJobId;
+    }
+
+    const selectedAiCard = getAiListCards(document).find(card => (
+      card.getAttribute('aria-current') === 'true'
+      || card.getAttribute('aria-pressed') === 'true'
+    ));
+    const selectedAiJobId = getAiJobIdFromCard(selectedAiCard);
+    if (selectedAiJobId) {
+      return selectedAiJobId;
+    }
+  }
+
   for (const selector of SELECTED_CARD_SELECTORS) {
     const selectedCard = document.querySelector(selector);
     if (selectedCard) {
@@ -354,6 +401,14 @@ function getCurrentJobId() {
 }
 
 function extractJobData() {
+  if (getPageMode() === 'ai') {
+    return {
+      ...extractAiJobData(document, window.location.href),
+      url: window.location.href,
+      timestamp: new Date().toISOString(),
+    };
+  }
+
   const jd = extractJDText();
   const detailsContainer = document.querySelector(DETAIL_BADGE_SELECTOR);
   const company = extractCompany(detailsContainer || document);
@@ -451,6 +506,11 @@ function looksLikeLocation(value) {
 }
 
 function getJobIdFromCard(card) {
+  const aiId = getAiJobIdFromCard(card);
+  if (aiId) {
+    return aiId;
+  }
+
   const directId = card.getAttribute('data-occludable-job-id')
     || card.getAttribute('data-job-id')
     || card.dataset.jobId;
@@ -474,20 +534,37 @@ function getJobIdFromCard(card) {
   return hrefUrl.searchParams.get('currentJobId');
 }
 
-function getCardTitle(card) {
+function getCardTitle(card, mode = getPageMode()) {
+  if (mode === 'ai') {
+    return getAiCardTitle(card) || 'Unknown Title';
+  }
+
   const titleElement = card.querySelector('.job-card-list__title, .job-card-container__title, strong, h3, a.job-card-list__title');
   return titleElement?.innerText?.trim()?.split('\n')[0] || 'Unknown Title';
 }
 
-function getCardCompany(card) {
+function getCardCompany(card, mode = getPageMode()) {
+  if (mode === 'ai') {
+    return getAiCardCompany(card);
+  }
+
   const companyElement = card.querySelector('.job-card-container__company-name, .artdeco-entity-lockup__subtitle, .job-card-container__primary-description');
   return companyElement?.innerText?.trim()?.split('\n')[0] || 'Unknown Company';
 }
 
+function getCardLocation(card, mode = getPageMode()) {
+  if (mode === 'ai') {
+    return getAiCardLocation(card);
+  }
+
+  return '';
+}
+
 function getJobsList() {
+  const mode = getPageMode();
   const uniqueJobs = new Map();
 
-  document.querySelectorAll(LIST_ITEM_SELECTOR).forEach(card => {
+  getListCards(mode).forEach(card => {
     const jobId = getJobIdFromCard(card);
     if (!jobId || uniqueJobs.has(jobId)) {
       return;
@@ -495,8 +572,9 @@ function getJobsList() {
 
     uniqueJobs.set(jobId, {
       jobId,
-      title: getCardTitle(card),
-      company: getCardCompany(card),
+      title: getCardTitle(card, mode),
+      company: getCardCompany(card, mode),
+      location: getCardLocation(card, mode),
     });
   });
 
@@ -504,19 +582,67 @@ function getJobsList() {
 }
 
 function focusJob(jobId) {
-  const cards = [...document.querySelectorAll(LIST_ITEM_SELECTOR)];
+  const mode = getPageMode();
+  const cards = getListCards(mode);
 
   for (const card of cards) {
     if (getJobIdFromCard(card) !== jobId) {
       continue;
     }
 
-    const clickable = card.querySelector(`a[href*="/jobs/view/${jobId}"], a[href*="currentJobId=${jobId}"]`)
-      || card.querySelector('a')
-      || card;
+    const clickable = mode === 'ai'
+      ? card
+      : card.querySelector(`a[href*="/jobs/view/${jobId}"], a[href*="currentJobId=${jobId}"]`)
+        || card.querySelector('a')
+        || card;
 
     clickable.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    window.setTimeout(() => clickable.click(), 60);
+    window.setTimeout(() => {
+      if (mode !== 'ai') {
+        activateClickable(clickable);
+        return;
+      }
+
+      clickable.focus?.();
+      if (typeof clickable.dispatchEvent === 'function') {
+        clickable.dispatchEvent(new KeyboardEvent('keydown', {
+          bubbles: true,
+          cancelable: true,
+          code: 'Enter',
+          key: 'Enter',
+          keyCode: 13,
+          which: 13,
+        }));
+      }
+
+      window.setTimeout(() => {
+        if (getCurrentJobId() !== jobId) {
+          activateClickable(clickable);
+        }
+      }, 180);
+    }, 60);
+    return true;
+  }
+
+  return false;
+}
+
+function activateClickable(element) {
+  if (!element) {
+    return false;
+  }
+
+  if (typeof element.click === 'function') {
+    element.click();
+    return true;
+  }
+
+  if (typeof element.dispatchEvent === 'function') {
+    element.dispatchEvent(new MouseEvent('click', {
+      bubbles: true,
+      cancelable: true,
+      view: window,
+    }));
     return true;
   }
 
@@ -524,16 +650,19 @@ function focusJob(jobId) {
 }
 
 function injectScoreBadge(jobId, score) {
-  const cards = [...document.querySelectorAll(LIST_ITEM_SELECTOR)];
+  const mode = getPageMode();
+  const cards = getListCards(mode);
 
   for (const card of cards) {
     if (getJobIdFromCard(card) !== jobId) {
       continue;
     }
 
-    const anchor = card.querySelector('.job-card-container__primary-description, .job-card-container__metadata-wrapper, .artdeco-entity-lockup__subtitle')
-      || card.querySelector('.job-card-list__title')?.parentElement
-      || card;
+    const anchor = mode === 'ai'
+      ? getAiCardTitleTarget(card)
+      : card.querySelector('.job-card-container__primary-description, .job-card-container__metadata-wrapper, .artdeco-entity-lockup__subtitle')
+        || card.querySelector('.job-card-list__title')?.parentElement
+        || card;
 
     let badge = card.querySelector('.ai-match-badge');
     if (!badge) {
@@ -552,7 +681,11 @@ function injectScoreBadge(jobId, score) {
   return false;
 }
 
-function getCardTitleAnchor(card) {
+function getCardTitleAnchor(card, mode = getPageMode()) {
+  if (mode === 'ai') {
+    return getAiCardTitleTarget(card);
+  }
+
   return card.querySelector('.job-card-list__title, .job-card-container__title, strong, h3, a.job-card-list__title')
     || card;
 }
@@ -562,13 +695,14 @@ function injectMetaBadges(jobId, badgeModels) {
     return false;
   }
 
-  const cards = [...document.querySelectorAll(LIST_ITEM_SELECTOR)];
+  const mode = getPageMode();
+  const cards = getListCards(mode);
   for (const card of cards) {
     if (getJobIdFromCard(card) !== jobId) {
       continue;
     }
 
-    const titleAnchor = getCardTitleAnchor(card);
+    const titleAnchor = getCardTitleAnchor(card, mode);
     titleAnchor.querySelectorAll('.ai-meta-badge, .ai-sponsor-badge').forEach(node => node.remove());
 
     for (const model of badgeModels || []) {
@@ -597,7 +731,9 @@ function injectDetailBadge(jobId, score) {
     return;
   }
 
-  const target = document.querySelector(DETAIL_BADGE_SELECTOR);
+  const target = getPageMode() === 'ai'
+    ? getAiDetailBadgeTarget(document)
+    : document.querySelector(DETAIL_BADGE_SELECTOR);
   if (!target) {
     return;
   }
@@ -619,7 +755,9 @@ function injectDetailMetaBadges(jobId, badgeModels) {
     return;
   }
 
-  const titleTarget = document.querySelector(TITLE_SELECTORS.join(', '));
+  const titleTarget = getPageMode() === 'ai'
+    ? getAiDetailTitleTarget(document)
+    : document.querySelector(TITLE_SELECTORS.join(', '));
   if (!titleTarget) {
     return;
   }
@@ -659,12 +797,13 @@ function getBadgeColor(score) {
 
 function injectBadgeStyles() {
   document.getElementById('ai-match-badge-styles')?.remove();
-  if (document.getElementById('ai-match-badge-styles-v030')) {
+  document.getElementById('ai-match-badge-styles-v030')?.remove();
+  if (document.getElementById('ai-match-badge-styles-v040')) {
     return;
   }
 
   const style = document.createElement('style');
-  style.id = 'ai-match-badge-styles-v030';
+  style.id = 'ai-match-badge-styles-v040';
   style.textContent = `
     .ai-match-badge,
     .ai-match-detail-badge,
